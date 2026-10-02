@@ -1,92 +1,105 @@
+import { useMemo } from 'react'
 import { agoTl, area, distance, PRICE_SHORT, quoteOf } from '../lib/format'
+import { tileFor } from '../lib/mapTiles'
 import type { Spot } from '../lib/types'
 import { Photo } from './ui'
 
-const byline = (s: Spot) => <>Natuklasan ni <b>@{s.discoverer}</b> · {agoTl(s.createdAt)}</>
-const ratingText = (s: Spot) => (s.ratings.overall ? `${s.ratings.overall.toFixed(1)}` : 'bago')
-/** The discoverer's own words lead; the place name is the fallback headline. */
-const headline = (s: Spot) => quoteOf(s.description) || s.name
+/** Person → discovery → food → story → location. */
+const who = (s: Spot) => <>@{s.discoverer} <b>nakahanap</b> · {agoTl(s.createdAt)}</>
+const where = (s: Spot) => [s.name, area(s).split(',')[0], PRICE_SHORT[s.priceBand], s.distanceM != null ? distance(s.distanceM) : ''].filter(Boolean).join(' · ')
+const words = (s: Spot, max = 120) => quoteOf(s.description, max)
+const trust = (s: Spot) => s.status !== 'active' ? <span className="off-txt">Baka sarado na</span> : s.verifiedVisits ? <span className="ok">{s.verifiedVisits} nakapunta talaga</span> : null
+const act = (fn: () => void) => ({ onClick: fn, role: 'button' as const, tabIndex: 0, onKeyDown: (e: React.KeyboardEvent) => e.key === 'Enter' && fn() })
 
-export function Facts({ s }: { s: Spot }) {
-  return <div className="where">{s.name}<span className="sep">·</span>{area(s)}<span className="sep">·</span>{PRICE_SHORT[s.priceBand]}{s.distanceM != null && <><span className="sep">·</span>{distance(s.distanceM)}</>}</div>
+/** A story in the map tray. Photo-led when there is a photo; text-led when there isn't. */
+export function TrayStory({ s, on, onOpen }: { s: Spot; on: boolean; onOpen: () => void }) {
+  const q = words(s, 90)
+  return (
+    <article className={`story ${s.coverPhoto ? '' : 'text'} ${on ? 'on' : ''}`} data-id={s.id} {...act(onOpen)}>
+      {s.coverPhoto && <Photo id={s.coverPhoto} name={s.name} />}
+      <div className="txt">
+        <div className="kick">{who(s)}</div>
+        <p className="say">{q ? `“${q}”` : s.name}</p>
+        <div className="meta">{where(s)}</div>
+        {trust(s) && <div style={{ marginTop: 4 }}>{trust(s)}</div>}
+      </div>
+    </article>
+  )
 }
 
-/** Swipeable card in the map's peek tray. */
-export function PeekCard({ s, onOpen }: { s: Spot; onOpen: () => void }) {
+export function FeedPhoto({ s, onOpen }: { s: Spot; onOpen: () => void }) {
+  const q = words(s)
   return (
-    <div className="peekCard" data-id={s.id} onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onOpen()}>
-      <Photo id={s.coverPhoto} name={s.name} />
-      <div className="grow">
-        <div className="kick"><b>{s.name}</b></div>
-        <p className="voice">{s.description ? `“${headline(s)}”` : 'Wala pang kwento. Ikaw na magkwento.'}</p>
-        <div className="meta">{area(s)} · {PRICE_SHORT[s.priceBand]} · {ratingText(s)}</div>
-        {s.verifiedVisits > 0 && <div className="meta ok" style={{ marginTop: 2 }}>{s.verifiedVisits} verified {s.verifiedVisits === 1 ? 'visit' : 'visits'}</div>}
-      </div>
+    <article className="fx f-photo" {...act(onOpen)}>
+      <Photo id={s.coverPhoto} name={s.name} nat />
+      <div className="kick" style={{ marginTop: 12 }}>{who(s)}</div>
+      <p className="say">{q ? `“${q}”` : s.name}</p>
+      <div className="meta">{where(s)}</div>
+      {trust(s) && <div style={{ marginTop: 6 }}>{trust(s)}</div>}
+    </article>
+  )
+}
+
+export function FeedText({ s, onOpen }: { s: Spot; onOpen: () => void }) {
+  return (
+    <article className="fx f-text" {...act(onOpen)}>
+      <div className="kick">{who(s)}</div>
+      <p className="say">“{words(s, 160)}”</p>
+      <div className="meta">{where(s)}</div>
+    </article>
+  )
+}
+
+export function FeedPair({ a, b, onOpen }: { a: Spot; b?: Spot; onOpen: (s: Spot) => void }) {
+  return (
+    <div className="f-pair">
+      {[a, b].filter(Boolean).map((s) => s && (
+        <article className="fx" key={s.id} {...act(() => onOpen(s))}>
+          <Photo id={s.coverPhoto} name={s.name} />
+          <p className="say">{words(s, 60) ? `“${words(s, 60)}”` : s.name}</p>
+          <div className="meta">@{s.discoverer} · {s.name}</div>
+        </article>
+      ))}
     </div>
   )
 }
 
-/** Large story, used first in lists. */
-export function Feature({ s, onOpen }: { s: Spot; onOpen: () => void }) {
+/** A discovery told through its place: a small piece of the lit map. */
+export function FeedMap({ s, onOpen }: { s: Spot; onOpen: () => void }) {
+  const tiles = useMemo(() => {
+    const z = 15, n = 2 ** z
+    const fx = ((s.lng + 180) / 360) * n
+    const r = (s.lat * Math.PI) / 180
+    const fy = ((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * n
+    const x0 = Math.floor(fx - 0.5), y0 = Math.floor(fy - 0.5)
+    return { z, x0, y0, px: (fx - x0) * 256, py: (fy - y0) * 256 }
+  }, [s.lat, s.lng])
   return (
-    <article className="story feature" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onOpen()}>
-      <Photo id={s.coverPhoto} name={s.name} />
-      <div className="kick byline">{byline(s)}</div>
-      <p className="voice">{s.description ? `“${headline(s)}”` : s.name}</p>
-      <Facts s={s} />
-      <div className="acts"><span>♥ {s.likes}</span><span>{s.comments} komento</span>{s.verifiedVisits > 0 && <span className="ok">{s.verifiedVisits} verified</span>}</div>
+    <article className="fx f-map" {...act(onOpen)}>
+      <div className="snip">
+        <div className="tiles" style={{ left: `calc(50% - ${tiles.px}px)`, top: `calc(50% - ${tiles.py}px)` }}>
+          {[[0, 0], [1, 0], [0, 1], [1, 1]].map(([dx, dy]) => <img key={`${dx}${dy}`} alt="" src={tileFor(tiles.z, tiles.x0 + dx, tiles.y0 + dy)} />)}
+        </div>
+        <div className={`lt ph${s.verifiedVisits ? ' v' : ''}`} style={s.coverPhoto ? ({ ['--img' as string]: `url(/api/photos/${s.coverPhoto})` } as React.CSSProperties) : undefined} />
+      </div>
+      <div className="kick" style={{ marginTop: 12 }}>{s.distanceM != null ? <><b>{distance(s.distanceM)}</b> mula sa’yo</> : area(s)}</div>
+      <p className="say">{words(s, 90) ? `“${words(s, 90)}”` : s.name}</p>
+      <div className="meta">{s.name} · @{s.discoverer}</div>
     </article>
   )
 }
 
-/** Compact line for dense lists. */
-export function Line({ s, onOpen }: { s: Spot; onOpen: () => void }) {
+export function FeedLine({ s, onOpen }: { s: Spot; onOpen: () => void }) {
+  const q = words(s, 80)
   return (
-    <div className="line" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onOpen()}>
+    <div className="f-line" {...act(onOpen)}>
       <Photo id={s.coverPhoto} name={s.name} />
       <div className="grow">
-        <h4>{s.name}{s.status === 'inactive' && <span className="state"> · baka sarado</span>}</h4>
-        {s.description && <p className="voice">“{headline(s)}”</p>}
-        <div className="meta">{area(s)}<span className="sep">·</span>{PRICE_SHORT[s.priceBand]}<span className="sep">·</span>{ratingText(s)}{s.distanceM != null && <><span className="sep">·</span>{distance(s.distanceM)}</>}</div>
-        {s.verifiedVisits > 0 && <div className="meta ok">{s.verifiedVisits} verified</div>}
+        <div className="kick">{who(s)}</div>
+        <p className="say">{q ? `“${q}”` : s.name}</p>
+        <div className="meta">{where(s)}</div>
+        {trust(s)}
       </div>
     </div>
-  )
-}
-
-/** Half-width tile for the staggered pair layout. */
-export function Tile({ s, onOpen }: { s: Spot; onOpen: () => void }) {
-  return (
-    <article className="story" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onOpen()}>
-      <Photo id={s.coverPhoto} name={s.name} />
-      <div className="kick">@{s.discoverer}</div>
-      <p className="voice">{s.description ? `“${headline(s)}”` : s.name}</p>
-      <div className="where">{s.name} · {area(s).split(',')[0]}</div>
-    </article>
-  )
-}
-
-/** Full-bleed photo with the story laid over it. */
-export function Bleed({ s, onOpen }: { s: Spot; onOpen: () => void }) {
-  return (
-    <article className="bleed" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onOpen()}>
-      <Photo id={s.coverPhoto} name={s.name} />
-      <div className="cap">
-        <div className="kick">{byline(s)}</div>
-        <p className="voice">{s.description ? `“${headline(s)}”` : s.name}</p>
-        <div className="kick">{s.name} · {area(s).split(',')[0]} · {PRICE_SHORT[s.priceBand]}</div>
-      </div>
-    </article>
-  )
-}
-
-/** Text-led recommendation, no photo. */
-export function Quote({ s, onOpen }: { s: Spot; onOpen: () => void }) {
-  return (
-    <article className="quote" onClick={onOpen} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onOpen()}>
-      <div className="kick">{byline(s)}</div>
-      <p className="voice">“{headline(s)}”</p>
-      <div className="where">{s.name} · {area(s)} · {PRICE_SHORT[s.priceBand]}</div>
-    </article>
   )
 }

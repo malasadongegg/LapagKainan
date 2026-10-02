@@ -73,7 +73,7 @@ export function ImHereFlow({ spot, onClose, onDone }: { spot: Spot; onClose: () 
         <p className="err">{err}</p>
       </>}
       {step === 1 && <>
-        <div className="ok" style={{ marginBottom: 10 }}>Verified Visit</div>
+        <div className="ok" style={{ marginBottom: 10 }}>Nandoon ka talaga. Verified.</div>
         <h2 className="h-lg" style={{ marginBottom: 6 }}>Kumusta ang kain?</h2>
         <RatingsStep vals={vals} setVals={setVals} body={body} setBody={setBody} err={err} />
       </>}
@@ -83,8 +83,8 @@ export function ImHereFlow({ spot, onClose, onDone }: { spot: Spot; onClose: () 
 }
 
 const pickIcon = (photo: string | null) => L.divIcon({
-  className: '', iconSize: [46, 46], iconAnchor: [23, 51],
-  html: `<div class="mk sel ${photo ? '' : 'noimg'}"><div class="ph" ${photo ? `style="background-image:url(${photo})"` : ''}></div></div>`,
+  className: '', iconSize: [64, 64], iconAnchor: [32, 32],
+  html: `<div class="lt ph sel new"${photo ? ` style="--img:url(${photo})"` : ''}></div>`,
 })
 function PickPoint({ onPick }: { onPick: (p: LatLng) => void }) {
   useMapEvents({ click: (e) => onPick({ lat: e.latlng.lat, lng: e.latlng.lng }) })
@@ -127,7 +127,7 @@ export function LapagFlow({ onClose, onCreated }: { onClose: () => void; onCreat
   const canNext = step === 0 ? !!photo : step === 1 ? !!loc && !showDupes : name.trim().length >= 2 && tags.length > 0
 
   return (
-    <FlowShell title="Lapag mo." step={step} steps={3} onClose={onClose} footer={<>
+    <FlowShell title="Lapag mo" step={step} steps={3} onClose={onClose} footer={<>
       {step > 0 && <button className="btn" onClick={() => setStep(step - 1)}>Balik</button>}
       {step < 2 ? <button className="btn solid grow" disabled={!canNext} onClick={() => setStep(step + 1)}>Susunod</button>
         : <button className="btn solid grow" disabled={!canNext || busy} onClick={() => submit(confirmNew)}>{busy ? 'Nilalapag…' : 'Lapag!'}</button>}

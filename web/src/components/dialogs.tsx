@@ -59,12 +59,12 @@ export function LapagMenu({ onClose, onNew }: { onClose: () => void; onNew: () =
     <Dialog onClose={onClose}>
       {nearby ? <>
         <h3 className="h-lg">Alin dito?</h3>
-        <div style={{ marginTop: 10 }}>{nearby.map((s) => <button key={s.id} className="menuopt" onClick={() => { onClose(); app.openSpot(s.id, { here: true }) }}><span className="h-md">{s.name}</span><span className="meta">{s.distanceM} m ang layo · {s.municipality}</span></button>)}</div>
+        <div style={{ marginTop: 10 }}>{nearby.map((s) => <button key={s.id} className="menuopt" onClick={() => { onClose(); app.openSpot(s.id, { here: true }) }}><span className="h-lg">{s.name}</span><span className="meta">{s.distanceM} m ang layo · {s.municipality}</span></button>)}</div>
       </> : <>
         <h3 className="h-xl">Ano’ng nakita mo?</h3>
         <div style={{ marginTop: 14 }}>
-          <button className="menuopt" onClick={onNew}><span className="h-md">May bago akong nadiscover</span><span className="meta">Photo, pin sa mapa, kwento. Mga 30 segundo.</span></button>
-          <button className="menuopt" onClick={ate}><span className="h-md">Kakain / kumain ako sa isang lugar</span><span className="meta">I-verify ang visit at mag-review.</span></button>
+          <button className="menuopt" onClick={onNew}><span className="h-lg">May bago akong nadiscover</span><span className="meta">Photo, pin sa mapa, kwento. Mga 30 segundo.</span></button>
+          <button className="menuopt" onClick={ate}><span className="h-lg">Kakain / kumain ako sa isang lugar</span><span className="meta">I-verify ang visit at mag-review.</span></button>
         </div>
         <p className="err">{msg}</p>
       </>}
