@@ -1,0 +1,16 @@
+{
+  "name": "lapagkainan",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hidden food exists somewhere. Community-powered Filipino food discovery map.",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "seed": "node scripts/seed.js",
+    "make-admin": "node scripts/make-admin.js",
+    "test": "node scripts/e2e.js"
+  },
+  "engines": { "node": ">=22.13" },
+  "dependencies": { "express": "^4.21.0" }
+}

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LapagKainan Admin</title>
+<link rel="icon" href="icon.svg">
+<style>
+  :root { --blue:#0038a8; --red:#ce1126; --sun:#fcd116; --bg:#f6f1e7; --card:#fff; --ink:#1d1a16; --muted:#6b6258; --line:#e3d8c6; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#17130e; --card:#231d15; --ink:#f6efe3; --muted:#a79d8f; --line:#3a3126; } }
+  * { box-sizing: border-box; } body { margin:0; font:14px/1.45 system-ui,sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:var(--blue); color:#fff; padding:12px 18px; display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+  header b { color:var(--sun); } nav { display:flex; gap:4px; flex-wrap:wrap; } nav button { background:none; border:0; color:#fff; padding:6px 12px; border-radius:999px; cursor:pointer; font:inherit; }
+  nav button.on { background:rgba(255,255,255,.2); } main { padding:18px; max-width:1100px; margin:auto; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; } .tile { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; }
+  .tile b { display:block; font-size:24px; } .tile.alert b { color:var(--red); }
+  table { width:100%; border-collapse:collapse; background:var(--card); border-radius:12px; overflow:hidden; } th,td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-size:12px; color:var(--muted); text-transform:uppercase; }
+  button.b { border:1px solid var(--line); background:var(--card); color:var(--ink); border-radius:8px; padding:4px 10px; cursor:pointer; font:inherit; } button.b.red { background:var(--red); color:#fff; border-color:var(--red); }
+  input, select { padding:7px 10px; border:1px solid var(--line); border-radius:8px; background:var(--card); color:var(--ink); font:inherit; }
+  .bar { background:var(--blue); height:10px; border-radius:5px; } .two { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:14px; margin-top:14px; }
+  .muted { color:var(--muted); } .tools { display:flex; gap:8px; margin:0 0 12px; flex-wrap:wrap; } #login { max-width:340px; margin:80px auto; background:var(--card); padding:20px; border-radius:14px; display:grid; gap:10px; }
+  .pill { padding:1px 8px; border-radius:999px; background:var(--line); font-size:12px; }
+</style>
+</head>
+<body>
+<div id="login" hidden><h2>🍜 LapagKainan Admin</h2><input id="l" placeholder="Username or email"><input id="p" type="password" placeholder="Password"><button class="b red" id="go">Log in</button><span id="lerr" style="color:var(--red)"></span></div>
+<div id="app" hidden>
+<header><span><b>LapagKainan</b> Admin</span>
+  <nav><button data-t="overview">Overview</button><button data-t="reports">Moderation</button><button data-t="spots">Food Spots</button><button data-t="users">Users</button><button data-t="analytics">Map analytics</button><button data-t="audit">Audit log</button></nav>
+  <span style="margin-left:auto"><a href="/" style="color:#fff">← Back to app</a></span></header>
+<main id="main"></main></div>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+let token = null; try { token = localStorage.getItem('lk_token'); } catch {}
+async function api(m, u, b) {
+  const r = await fetch('/api/admin' + u, { method: m, headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token }, body: b ? JSON.stringify(b) : undefined });
+  const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || r.status); return d;
+}
+const fmt = (t) => new Date(t).toLocaleString();
+const tabs = {
+  async overview() {
+    const o = await api('GET', '/overview'), t = o.totals;
+    const L = { users:'Users', spots:'Food Spots', discoveries:'Discoveries', reviews:'Reviews', verifiedVisits:'Verified visits', photos:'Photos', activeReports:'Active reports', inactiveSpots:'Inactive spots', archivedSpots:'Archived' };
+    return `<h2>Overview</h2><div class="grid">${Object.entries(L).map(([k, l]) => `<div class="tile ${k === 'activeReports' && t[k] ? 'alert' : ''}"><b>${t[k]}</b>${l}</div>`).join('')}</div>`;
+  },
+  async reports() {
+    const st = tabs._rs || 'open'; const { reports } = await api('GET', '/reports?status=' + st);
+    return `<h2>Moderation queue</h2><div class="tools">${['open','actioned','dismissed'].map((s) => `<button class="b ${s === st ? 'red' : ''}" onclick="tabs._rs='${s}';show('reports')">${s}</button>`).join('')}</div>
+    <table><tr><th>When</th><th>Target</th><th>Reason</th><th>Reporter</th><th></th></tr>${reports.map((r) => `<tr><td>${fmt(r.created_at)}</td>
+      <td><span class="pill">${r.target_type} #${r.target_id}</span> ${esc(r.target?.name || r.target?.body || r.target?.username || r.target?.kind || '(gone)')}<div class="muted">${esc(r.target?.status || (r.target?.hidden ? 'hidden' : ''))}</div></td>
+      <td>${esc(r.reason)}<div class="muted">${esc(r.note)}</div></td><td>@${esc(r.reporter)}</td>
+      <td>${r.status === 'open' ? `<button class="b red" onclick="resolve(${r.id},'remove')">Remove / act</button> <button class="b" onclick="resolve(${r.id},'dismiss')">Dismiss</button>` : r.status}</td></tr>`).join('') || '<tr><td colspan=5 class="muted">Nothing here 🎉</td></tr>'}</table>`;
+  },
+  async spots() {
+    const q = tabs._sq || '', st = tabs._ss || ''; const { spots } = await api('GET', `/spots?q=${encodeURIComponent(q)}&status=${st}`); tabs._spots = spots;
+    return `<h2>Food Spots</h2><div class="tools"><input id="sq" placeholder="Search name / municipality" value="${esc(q)}" onchange="tabs._sq=this.value;show('spots')">
+      <select onchange="tabs._ss=this.value;show('spots')">${['','active','inactive','archived'].map((s) => `<option ${s === st ? 'selected' : ''} value="${s}">${s || 'all statuses'}</option>`).join('')}</select>
+      <button class="b" onclick="mergeSpots()">Merge duplicates…</button></div>
+    <table><tr><th>ID</th><th>Name</th><th>Area</th><th>Status</th><th>By</th><th></th></tr>${spots.map((s) => `<tr><td>${s.id}</td><td>${esc(s.name)}</td><td>${esc([s.municipality, s.province].filter(Boolean).join(', '))}</td><td><span class="pill">${s.status}</span></td><td>@${esc(s.discoverer)}</td>
+      <td><button class="b" onclick="editSpot(${s.id})">Edit facts</button>
+      ${s.status === 'archived' ? `<button class="b" onclick="spotAct(${s.id},'restore')">Restore</button>` : `<button class="b red" onclick="spotAct(${s.id},'archive')">Archive</button>`}</td></tr>`).join('')}</table>`;
+  },
+  async users() {
+    const q = tabs._uq || ''; const { users } = await api('GET', '/users?q=' + encodeURIComponent(q));
+    return `<h2>Users</h2><div class="tools"><input placeholder="Search username / email" value="${esc(q)}" onchange="tabs._uq=this.value;show('users')"></div>
+    <table><tr><th>User</th><th>Role</th><th>Status</th><th>Reports against</th><th>Mod actions</th><th>Joined</th><th></th></tr>${users.map((u) => `<tr><td>@${esc(u.username)}<div class="muted">${esc(u.email)}</div></td><td>${u.role}</td><td><span class="pill">${u.status}</span></td><td>${u.reports_against}</td><td>${u.mod_actions}</td><td>${fmt(u.created_at)}</td>
+      <td>${u.role === 'admin' ? '' : ['active','suspended','banned'].filter((s) => s !== u.status).map((s) => `<button class="b ${s === 'banned' ? 'red' : ''}" onclick="userAct(${u.id},'${s}')">${s}</button>`).join(' ')}</td></tr>`).join('')}</table>`;
+  },
+  async analytics() {
+    const o = await api('GET', '/overview');
+    const bars = (rows) => { const max = Math.max(1, ...rows.map((r) => r.n)); return rows.map((r) => `<div style="display:grid;grid-template-columns:130px 1fr 34px;gap:8px;align-items:center;margin:4px 0"><span>${esc(r.name)}</span><div class="bar" style="width:${(r.n / max) * 100}%"></div><b>${r.n}</b></div>`).join('') || '<span class="muted">No data yet</span>'; };
+    return `<h2>Map analytics</h2><div class="two"><div class="tile"><h3>Most active provinces</h3>${bars(o.byProvince)}</div><div class="tile"><h3>Most active municipalities</h3>${bars(o.byMunicipality)}</div><div class="tile"><h3>Category distribution</h3>${bars(o.byCategory)}</div></div>
+      <p class="muted">${o.points.length} mapped food spots (discovery density: see province/municipality bars).</p>`;
+  },
+  async audit() {
+    const { logs } = await api('GET', '/audit');
+    return `<h2>Audit log</h2><table><tr><th>When</th><th>Admin</th><th>Action</th><th>Target</th><th>Detail</th></tr>${logs.map((l) => `<tr><td>${fmt(l.created_at)}</td><td>@${esc(l.admin)}</td><td>${esc(l.action)}</td><td>${esc(l.target)}</td><td>${esc(l.detail)}</td></tr>`).join('') || '<tr><td colspan=5 class="muted">No actions yet</td></tr>'}</table>`;
+  },
+};
+async function show(t) {
+  document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('on', b.dataset.t === t));
+  try { $('#main').innerHTML = await tabs[t](); } catch (e) { $('#main').innerHTML = `<p style="color:var(--red)">${esc(e.message)}</p>`; }
+}
+const run = async (fn) => { try { await fn(); } catch (e) { alert(e.message); } };
+async function resolve(id, action) { const note = action === 'remove' ? prompt('Note for the audit log (optional):') ?? '' : ''; run(async () => { await api('POST', `/reports/${id}/resolve`, { action, note }); show('reports'); }); }
+async function spotAct(id, a) { const reason = a === 'archive' ? prompt('Reason?') ?? '' : ''; run(async () => { await api('POST', `/spots/${id}/${a}`, { reason }); show('spots'); }); }
+async function userAct(id, status) { const reason = prompt(`Set status to ${status}. Reason?`); if (reason === null) return; run(async () => { await api('POST', `/users/${id}/status`, { status, reason }); show('users'); }); }
+async function editSpot(id) {
+  const s = tabs._spots.find((x) => x.id === id), name = s.name, muni = s.municipality, prov = s.province;
+  const n = prompt('Name', name); if (n === null) return; const m = prompt('Municipality', muni) ?? muni; const p = prompt('Province', prov) ?? prov;
+  run(async () => { await api('PATCH', `/spots/${id}`, { name: n, municipality: m, province: p }); show('spots'); });
+}
+async function mergeSpots() {
+  const from = prompt('Duplicate spot ID (will be archived):'); const into = from && prompt('Keep this spot ID (canonical):');
+  if (from && into) run(async () => { await api('POST', '/spots/merge', { fromId: +from, intoId: +into }); show('spots'); });
+}
+document.querySelectorAll('nav button').forEach((b) => b.onclick = () => show(b.dataset.t));
+async function start() {
+  try { await api('GET', '/overview'); $('#login').hidden = true; $('#app').hidden = false; show('overview'); }
+  catch { $('#login').hidden = false; $('#app').hidden = true; }
+}
+$('#go').onclick = async () => {
+  const r = await fetch('/api/auth/login', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ login: $('#l').value, password: $('#p').value }) });
+  const d = await r.json(); if (!r.ok) return ($('#lerr').textContent = d.error);
+  token = d.token; try { localStorage.setItem('lk_token', token); } catch {} start();
+};
+start();
+</script>
+</body>
+</html>
