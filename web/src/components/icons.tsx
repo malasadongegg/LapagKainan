@@ -23,3 +23,4 @@ export const Utensils = mk(<><path d="M5 3v8a2 2 0 0 0 2 2v8M9 3v8M7 3v8" /><pat
 export const Back = mk(<path d="m15 18-6-6 6-6" />)
 export const Flag = mk(<><path d="M5 21V4" /><path d="M5 4h12l-2 4 2 4H5" /></>)
 export const Chat = mk(<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z" />)
+export const Dice = mk(<><rect x="4" y="4" width="16" height="16" rx="4" /><circle cx="9" cy="9" r="1.2" fill="currentColor" /><circle cx="15" cy="15" r="1.2" fill="currentColor" /><circle cx="15" cy="9" r="1.2" fill="currentColor" /><circle cx="9" cy="15" r="1.2" fill="currentColor" /></>)

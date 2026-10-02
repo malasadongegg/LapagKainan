@@ -8,6 +8,7 @@ import { getLocation, lastKnownLocation, reverseGeocode, type LatLng } from '../
 import { TILE_ATTRIBUTION, TILE_URL, DEFAULT_CENTER } from '../lib/mapTiles'
 import { BANDS, TAG_GROUPS, type PriceBand, type Spot } from '../lib/types'
 import { Camera, Locate } from './icons'
+import { pinHtml } from './MapView'
 import { FlowShell, RateInput } from './ui'
 
 const DIMS = [['food', 'Food'], ['value', 'Value'], ['service', 'Service'], ['cleanliness', 'Cleanliness'], ['overall', 'Overall experience']] as const
@@ -82,10 +83,7 @@ export function ImHereFlow({ spot, onClose, onDone }: { spot: Spot; onClose: () 
   )
 }
 
-const pickIcon = (photo: string | null) => L.divIcon({
-  className: '', iconSize: [64, 64], iconAnchor: [32, 32],
-  html: `<div class="lt ph sel new"${photo ? ` style="--img:url(${photo})"` : ''}></div>`,
-})
+const pickIcon = (photo: string | null) => L.divIcon({ className: '', iconSize: [50, 58], iconAnchor: [25, 58], html: pinHtml({ name: 'Dito', coverPhoto: null, verifiedVisits: 0, status: 'active', priceTier: 0, ratings: { food: null, value: null, service: null, cleanliness: null, overall: null } }, false, photo ?? undefined) })
 function PickPoint({ onPick }: { onPick: (p: LatLng) => void }) {
   useMapEvents({ click: (e) => onPick({ lat: e.latlng.lat, lng: e.latlng.lng }) })
   return null

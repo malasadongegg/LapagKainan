@@ -3,6 +3,7 @@ import { api, getToken, setToken } from './lib/api'
 import { Ctx, type AppCtx } from './app-context'
 import type { User } from './lib/types'
 import { AuthDialog, LapagMenu } from './components/dialogs'
+import { Bookmark, Flame, MapIcon, Plus, UserIcon } from './components/icons'
 import { LapagFlow } from './components/flows'
 import MapScreen from './screens/MapScreen'
 import { DiscoverScreen, ProfileScreen, SavedScreen } from './screens/Screens'
@@ -46,7 +47,7 @@ export default function App() {
 
   const go = useCallback((t: Tab) => { location.hash = '#' + t }, [])
   const initial = pending ?? (route.spot ? { id: route.spot, here: false } : null)
-  const tab = (t: Tab, label: string) => <button key={t} className={route.tab === t ? 'on' : ''} onClick={() => go(t)}>{label}</button>
+  const tab = (t: Tab, label: string, icon: React.ReactNode) => <button key={t} className={route.tab === t ? 'on' : ''} onClick={() => go(t)}>{icon}{label}</button>
 
   return (
     <Ctx.Provider value={ctx}>
@@ -71,11 +72,11 @@ export default function App() {
         </div>
 
         <nav className="nav" aria-label="Main">
-          {tab('map', 'Mapa')}
-          {tab('discover', 'Kwento')}
-          <button className="lapag" onClick={ctx.openLapag}>＋ LAPAG</button>
-          {tab('saved', 'Saved')}
-          {tab('profile', 'Ikaw')}
+          {tab('map', 'Mapa', <MapIcon />)}
+          {tab('discover', 'Kwento', <Flame />)}
+          <button className="lapag" onClick={ctx.openLapag}><Plus />LAPAG</button>
+          {tab('saved', 'Saved', <Bookmark />)}
+          {tab('profile', 'Ikaw', <UserIcon />)}
         </nav>
 
         {authOpen && <AuthDialog onClose={() => setAuthOpen(false)} />}

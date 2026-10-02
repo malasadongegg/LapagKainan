@@ -1,5 +1,7 @@
 # LapagKainan — "Ilaw" design system (daylight edition)
 
+> v3 (current): friendlier map screen after user feedback. Natural map colours (blue water, green parks), photo pins with a point that open into a name pill when selected, rounded search bar + category chips, rounded discovery cards in the tray, floating nav, "Bahala na" random-pick button. No pulsing or glow anywhere (it read as an incident/dispatch map). Buttons are pills; the square/mono rules below still apply to the discovery page and feed.
+>
 > v2: the night map read like a dispatch dashboard, so the palette moved to warm daylight (toasted-rice paper, a warmer and richer CARTO Voyager map). The light language below still holds, expressed with rings and pulses instead of glow.
 
 **Idea.** At night, from above, you can tell where people eat by where the lights are on.

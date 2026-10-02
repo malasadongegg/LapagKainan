@@ -3,7 +3,6 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import { photoUrl } from '../lib/api'
-import { PRICE_SHORT, quoteOf } from '../lib/format'
 import { DEFAULT_CENTER, DEFAULT_ZOOM, TILE_ATTRIBUTION, TILE_URL } from '../lib/mapTiles'
 import type { LatLng } from '../lib/geo'
 import type { Spot } from '../lib/types'
@@ -16,26 +15,25 @@ export interface Inset { top: number; left: number; right: number; bottom: numbe
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
 const PHOTO_ZOOM = 14 // below this a discovery is a point of light; at street level it shows its photo
 const CLUSTER_PX = 54
-const WEEK = 7 * 864e5
 
-const states = (s: Spot) => `${s.status !== 'active' ? ' off' : ''}${Date.now() - s.createdAt < WEEK && s.status === 'active' ? ' new' : ''}`
+const tier = (s: Spot) => ['', '₱', '₱₱', '₱₱₱', '₱₱₱₱'][s.priceTier] ?? ''
+const flags = (s: Spot) => `${s.verifiedVisits ? ' v' : ''}${s.status !== 'active' ? ' off' : ''}`
 
+/** Zoomed out: a small dot. Street level: the spot's food photo on a pin. Selected: the pin opens a name pill. */
+export function pinHtml(s: Pick<Spot, 'name' | 'coverPhoto' | 'verifiedVisits' | 'status' | 'priceTier' | 'ratings'>, sel: boolean, img?: string) {
+  const bg = img ?? (s.coverPhoto ? photoUrl(s.coverPhoto) : '')
+  const label = sel ? `<div class="pinlbl">${esc(s.name)}<small>${tier(s as Spot)}${s.ratings?.overall ? ' · ★ ' + s.ratings.overall.toFixed(1) : ''}</small></div>` : ''
+  return `<div class="pinwrap${sel ? ' sel' : ''}${flags(s as Spot)}"><div class="pin">${bg ? `<div class="img" style="--img:url(${bg})"></div>` : esc(s.name[0]?.toUpperCase() ?? '')}</div>${label}</div>`
+}
 function lightIcon(s: Spot, sel: boolean, photo: boolean) {
-  if (!photo && !sel) return L.divIcon({ className: '', html: `<div class="lt dot${states(s)}"></div>`, iconSize: [12, 12], iconAnchor: [6, 6] })
-  const size = sel ? 64 : 44
-  const img = s.coverPhoto ? ` style="--img:url(${photoUrl(s.coverPhoto)})"` : ''
-  const q = quoteOf(s.description, 72)
-  const ann = sel ? `<div class="ann"><i></i><b>${esc(s.name)}</b>${q ? `<q>${esc(q)}</q>` : ''}<small>@${esc(s.discoverer)} · ${esc(PRICE_SHORT[s.priceBand])}${s.status !== 'active' ? ' · baka sarado' : ''}</small></div>` : ''
-  return L.divIcon({
-    className: '', iconSize: [size, size], iconAnchor: [size / 2, size / 2],
-    html: `<div class="lt ph${sel ? ' sel' : ''}${s.verifiedVisits ? ' v' : ''}${states(s)}"${img}>${s.coverPhoto ? '' : esc(s.name[0]?.toUpperCase() ?? '')}${ann}</div>`,
-  })
+  if (!photo && !sel) return L.divIcon({ className: '', html: `<div class="dotpin${flags(s)}"></div>`, iconSize: [16, 16], iconAnchor: [8, 8] })
+  return L.divIcon({ className: '', html: pinHtml(s, sel), iconSize: [50, 58], iconAnchor: [25, 58] })
 }
 function clusterIcon(n: number) {
-  const s = Math.round(34 + Math.min(46, Math.sqrt(n) * 12))
-  return L.divIcon({ className: '', html: `<div class="lt cl" style="--s:${s}px">${n}</div>`, iconSize: [s, s], iconAnchor: [s / 2, s / 2] })
+  const s = Math.round(36 + Math.min(24, Math.sqrt(n) * 6))
+  return L.divIcon({ className: '', html: `<div class="clu" style="--s:${s}px">${n}</div>`, iconSize: [s, s], iconAnchor: [s / 2, s / 2] })
 }
-const youIcon = L.divIcon({ className: '', html: '<div class="you"></div>', iconSize: [14, 14], iconAnchor: [7, 7] })
+const youIcon = L.divIcon({ className: '', html: '<div class="you"></div>', iconSize: [18, 18], iconAnchor: [9, 9] })
 
 type Group = { one: Spot } | { many: Spot[]; lat: number; lng: number }
 
@@ -76,8 +74,8 @@ function Controller({ target, inset, onBounds }: { target: MapTarget | null; ins
     if (!target) return
     if (target.kind === 'point') {
       const z = target.zoom ?? Math.max(map.getZoom(), 16)
-      // Aim at the middle of the visible map; nudge left so the annotation has room on the right.
-      const dx = (inset.right - inset.left) / 2 + 60, dy = (inset.bottom - inset.top) / 2
+      // Aim at the middle of the visible map; nudge left so the name pill has room on the right.
+      const dx = (inset.right - inset.left) / 2 + 50, dy = (inset.bottom - inset.top) / 2
       map.flyTo(map.unproject(map.project([target.lat, target.lng], z).add([dx, dy]), z), z, { duration: 0.7 })
     } else map.flyToBounds(target.bounds, { paddingTopLeft: [inset.left + 40, inset.top + 30], paddingBottomRight: [inset.right + 40, inset.bottom + 30], maxZoom: 16, duration: 0.6 })
     // eslint-disable-next-line react-hooks/exhaustive-deps

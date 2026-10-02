@@ -3,6 +3,7 @@ import { agoTl, area, distance, PRICE_SHORT, quoteOf } from '../lib/format'
 import { tileFor } from '../lib/mapTiles'
 import type { Spot } from '../lib/types'
 import { Photo } from './ui'
+import { pinHtml } from './MapView'
 
 /** Person → discovery → food → story → location. */
 const who = (s: Spot) => <>@{s.discoverer} <b>nakahanap</b> · {agoTl(s.createdAt)}</>
@@ -11,17 +12,27 @@ const words = (s: Spot, max = 120) => quoteOf(s.description, max)
 const trust = (s: Spot) => s.status !== 'active' ? <span className="off-txt">Baka sarado na</span> : s.verifiedVisits ? <span className="ok">{s.verifiedVisits} nakapunta talaga</span> : null
 const act = (fn: () => void) => ({ onClick: fn, role: 'button' as const, tabIndex: 0, onKeyDown: (e: React.KeyboardEvent) => e.key === 'Enter' && fn() })
 
-/** A story in the map tray. Photo-led when there is a photo; text-led when there isn't. */
-export function TrayStory({ s, on, onOpen }: { s: Spot; on: boolean; onOpen: () => void }) {
+const TIER = ['', '₱', '₱₱', '₱₱₱', '₱₱₱₱']
+
+/** A discovery card in the map tray: the food, the place, and what the person who found it said. */
+export function TrayCard({ s, on, onOpen }: { s: Spot; on: boolean; onOpen: () => void }) {
   const q = words(s, 90)
+  const stat = s.status !== 'active' ? <span className="stat">Baka sarado na</span>
+    : s.verifiedVisits ? <span className="stat v">✓ {s.verifiedVisits} nakapunta</span>
+      : s.ratings.overall ? <span className="stat">★ {s.ratings.overall.toFixed(1)} · {s.reviewCount} review</span>
+        : <span className="stat">Bagong lapag · {agoTl(s.createdAt)}</span>
   return (
-    <article className={`story ${s.coverPhoto ? '' : 'text'} ${on ? 'on' : ''}`} data-id={s.id} {...act(onOpen)}>
-      {s.coverPhoto && <Photo id={s.coverPhoto} name={s.name} />}
-      <div className="txt">
-        <div className="kick">{who(s)}</div>
-        <p className="say">{q ? `“${q}”` : s.name}</p>
-        <div className="meta">{where(s)}</div>
-        {trust(s) && <div style={{ marginTop: 4 }}>{trust(s)}</div>}
+    <article className={`card ${on ? 'on' : ''}`} data-id={s.id} {...act(onOpen)}>
+      <div className="cimg">
+        <Photo id={s.coverPhoto} name={s.name} />
+        {s.tags[0] && <span className="cat">{s.tags[0]}</span>}
+        {s.distanceM != null && <span className="dist">{distance(s.distanceM)}</span>}
+      </div>
+      <div className="cbody">
+        <h3>{s.name}</h3>
+        <div className="where"><span>{area(s)}</span><b>{TIER[s.priceTier]}</b></div>
+        {q && <p className="cq">“{q}” <span>— @{s.discoverer}</span></p>}
+        <div className="cfoot">{stat}<span className="btn solid">Tingnan</span></div>
       </div>
     </article>
   )
@@ -80,7 +91,7 @@ export function FeedMap({ s, onOpen }: { s: Spot; onOpen: () => void }) {
         <div className="tiles" style={{ left: `calc(50% - ${tiles.px}px)`, top: `calc(50% - ${tiles.py}px)` }}>
           {[[0, 0], [1, 0], [0, 1], [1, 1]].map(([dx, dy]) => <img key={`${dx}${dy}`} alt="" src={tileFor(tiles.z, tiles.x0 + dx, tiles.y0 + dy)} />)}
         </div>
-        <div className={`lt ph${s.verifiedVisits ? ' v' : ''}`} style={s.coverPhoto ? ({ ['--img' as string]: `url(/api/photos/${s.coverPhoto})` } as React.CSSProperties) : undefined} />
+        <div className="snipPin" dangerouslySetInnerHTML={{ __html: pinHtml(s, false) }} />
       </div>
       <div className="kick" style={{ marginTop: 12 }}>{s.distanceM != null ? <><b>{distance(s.distanceM)}</b> mula sa’yo</> : area(s)}</div>
       <p className="say">{words(s, 90) ? `“${words(s, 90)}”` : s.name}</p>

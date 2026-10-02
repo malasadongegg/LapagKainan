@@ -2,11 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../lib/api'
 import { useApp } from '../app-context'
 import { geocodePlace, getLocation, lastKnownLocation, type LatLng } from '../lib/geo'
-import { BANDS, TAG_GROUPS, type PriceBand, type Spot } from '../lib/types'
+import { BANDS, QUICK_TAGS, TAG_GROUPS, type PriceBand, type Spot } from '../lib/types'
 import MapView, { type BoundsStr, type MapTarget } from '../components/MapView'
 import SpotDetail from '../components/SpotDetail'
-import { Locate } from '../components/icons'
-import { TrayStory } from '../components/stories'
+import { Dice, Locate, Search as SearchIcon } from '../components/icons'
+import { TrayCard } from '../components/stories'
 
 interface Filters { radius: number; price: PriceBand[]; verified: boolean; recent: boolean; inactive: boolean }
 const NO_FILTERS: Filters = { radius: 0, price: [], verified: false, recent: false, inactive: false }
@@ -86,32 +86,43 @@ export default function MapScreen({ initialSpot, initialHere }: { initialSpot: n
   }
 
   const desktop = isDesktop()
-  const inset = desktop ? { top: 120, left: 380, right: openId ? 560 : 0, bottom: 0 } : { top: 150, left: 0, right: 0, bottom: 280 }
+  const inset = desktop ? { top: 120, left: 390, right: openId ? 560 : 0, bottom: 0 } : { top: 150, left: 0, right: 0, bottom: 360 }
   const summary = [query && `“${query}”`, ...tags, ...filters.price.map((b) => BANDS[b]), filters.radius ? RADII.find(([r]) => r === filters.radius)?.[1] : '', filters.verified && 'verified', filters.recent && 'bago', filters.inactive && '+ sarado'].filter(Boolean) as string[]
   const quiet = !loading && !spots.length
 
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
       <div className="mapLayer"><MapView spots={spots} selectedId={focusId} onSelect={onLight} me={me} target={target} onBounds={setBounds} inset={inset} /></div>
-      <div className="scrimTop" /><div className="scrimBot" />
+      <div className="mapTop">
+        <button className="sbar" onClick={() => setSearchOpen(true)} aria-label="Maghanap">
+          <SearchIcon />
+          <span className={`ph ${summary.length ? 'q' : ''}`}>{summary.length ? summary.join(' · ') : 'Saan tayo kakain?'}</span>
+          <span className="count" title="Lapag sa nakikita mong mapa">{loading ? '…' : spots.length}</span>
+        </button>
+        <div className="chips">
+          <button className={!tags.length && !query ? 'on' : ''} onClick={() => { setTags([]); setQuery('') }}>Lahat</button>
+          {QUICK_TAGS.map((t) => <button key={t} className={tags.includes(t) ? 'on' : ''} onClick={() => setTags((c) => (c.includes(t) ? c.filter((x) => x !== t) : [...c, t]))}>{t}</button>)}
+        </div>
+      </div>
 
-      <button className="prompt" onClick={() => setSearchOpen(true)} aria-label="Maghanap">
-        <span className="say">Saan tayo kakain?</span>
-        <span className="kick">{summary.length ? summary.join(' · ') : 'Pares, silog, lugaw… o isang lugar'}</span>
-      </button>
-      {summary.length > 0 && <div className="filterline"><button className="link" onClick={() => { setQuery(''); setTags([]); setFilters(NO_FILTERS) }}>× Alisin ang filter</button></div>}
+      <div className="mapBtns" style={{ bottom: desktop ? undefined : 'calc(84px + 296px + var(--safe))' }}>
+        <button className="roundBtn" aria-label="Bahala na" title="Bahala na! Random na lapag" onClick={() => {
+          if (!spots.length) { app.toast('Wala pang lapag dito'); return }
+          const pick = spots.filter((s) => s.id !== focusId)
+          const s = pick[Math.floor(Math.random() * pick.length)] ?? spots[0]
+          focus(s, true); app.toast(`Bahala na: ${s.name}`)
+        }}><Dice /></button>
+        <button className="roundBtn" aria-label="Malapit sa akin" onClick={locate}><Locate /></button>
+      </div>
 
-      <button className="locate" style={{ bottom: desktop ? undefined : 260 }} aria-label="Malapit sa akin" onClick={locate}><Locate /></button>
-
-      <div className="trayHead kick"><span>{loading ? 'Hinahanap ang mga ilaw…' : quiet ? 'Tahimik dito' : <><b>{spots.length}</b> lapag dito</>}</span>{!quiet && !desktop && <span>swipe →</span>}</div>
       <div className="tray" ref={tray} onScroll={onTrayScroll}>
         {quiet ? (
-          <div className="story empty">
-            <p className="say" style={{ fontSize: 30 }}>Parang tahimik dito ah.</p>
-            <p className="meta" style={{ margin: '8px 0 14px' }}>Baka ikaw ang unang makakadiskubre.</p>
+          <div className="card empty">
+            <p className="h-lg">Parang tahimik dito ah.</p>
+            <p className="meta" style={{ margin: '8px 0 14px', textTransform: 'none', fontFamily: 'var(--ui)', fontSize: 14 }}>Wala pa dito. Baka ikaw ang unang makakadiskubre.</p>
             <button className="btn solid" onClick={app.openLapag}>＋ Lapag mo</button>
           </div>
-        ) : spots.slice(0, 40).map((s) => <TrayStory key={s.id} s={s} on={s.id === focusId} onOpen={() => { focus(s, false); setOpenId(s.id) }} />)}
+        ) : spots.slice(0, 40).map((s) => <TrayCard key={s.id} s={s} on={s.id === focusId} onOpen={() => { focus(s, false); setOpenId(s.id) }} />)}
       </div>
 
       {openId != null && <div className="page" role="dialog" aria-modal="true"><SpotDetail key={openId} id={openId} autoHere={initialHere && openId === initialSpot} onClose={() => setOpenId(null)} /></div>}

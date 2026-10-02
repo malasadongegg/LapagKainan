@@ -58,7 +58,7 @@ function FitAll({ spots }: { spots: Spot[] }) {
   useEffect(() => { if (spots.length) map.fitBounds(L.latLngBounds(spots.map((s) => [s.lat, s.lng])), { padding: [40, 40], maxZoom: 15 }) }, [map, spots])
   return null
 }
-const dot = L.divIcon({ className: '', html: '<div class="lt dot"></div>', iconSize: [12, 12], iconAnchor: [6, 6] })
+const dot = L.divIcon({ className: '', html: '<div class="dotpin"></div>', iconSize: [16, 16], iconAnchor: [8, 8] })
 
 export function SavedScreen() {
   const app = useApp()
