@@ -6,6 +6,8 @@
   "description": "Hidden food exists somewhere. Community-powered Filipino food discovery map.",
   "scripts": {
     "start": "node server/index.js",
+    "build": "npm --prefix web install && npm --prefix web run build",
+    "dev:web": "npm --prefix web run dev",
     "dev": "node --watch server/index.js",
     "seed": "node scripts/seed.js",
     "make-admin": "node scripts/make-admin.js",

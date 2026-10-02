@@ -7,3 +7,5 @@ data/
 *.db-*
 *.key
 DECISIONS.md
+web/.env
+dist/

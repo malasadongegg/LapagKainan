@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { db, now } from './db.js';
 import {
@@ -368,7 +369,9 @@ app.get('/api/me/saves', wrap((req, res) => {
 app.use('/api/admin', adminRouter(wrap, requireUser));
 
 app.use('/api', (_req, _res, next) => next(new HttpError(404, 'Not found')));
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// Serve the built React app (web/dist). SPA routes use the hash, so no history fallback is needed.
+const webDist = path.join(__dirname, '..', 'web', 'dist');
+app.use(express.static(fs.existsSync(webDist) ? webDist : path.join(__dirname, '..', 'public')));
 
 // eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {

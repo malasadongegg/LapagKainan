@@ -1,3 +1,3 @@
 { "name": "LapagKainan", "short_name": "LapagKainan", "description": "Hidden food exists somewhere.",
-  "start_url": "/", "display": "standalone", "background_color": "#fff8ec", "theme_color": "#0038a8",
+  "start_url": "/", "display": "standalone", "background_color": "#ffffff", "theme_color": "#ffffff",
   "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }] }

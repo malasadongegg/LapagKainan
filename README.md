@@ -6,7 +6,10 @@ This is the **MVP** (spec §37): web app + REST API. The same API is what the An
 ## Run it
 ```bash
 npm install
-npm start            # http://localhost:3000
+cp web/.env.example web/.env     # add VITE_CARTO_API_KEY (CARTO Voyager tiles)
+npm run build                    # builds the React app into web/dist
+npm start            # http://localhost:3000  (serves API + web/dist)
+npm run dev:web      # optional: Vite dev server on :5173 (proxies /api to :3000)
 npm run seed         # optional demo spots (login: demo / demo12345)
 npm run make-admin <username>   # then open /admin.html
 npm test             # end-to-end check of the spec's "final product test" (28 checks)
@@ -20,7 +23,8 @@ Requires Node ≥ 22.13 (uses built-in `node:sqlite`, so no native build step).
 | `server/spots.js` | Queries, search/filters, INACTIVE→ARCHIVED lifecycle, derived badges |
 | `server/admin.js` | Admin API: overview, moderation queue, spot edit/archive/restore/merge, users, audit log |
 | `server/db.js` | Schema (SQLite, FK + CHECK constraints + indexes) |
-| `public/` | Web client (Leaflet + vanilla ES modules, installable PWA manifest), `admin.html` dashboard |
+| `web/` | React + Vite + TypeScript PWA (react-leaflet, CARTO Voyager tiles, bottom-sheet map UI) |
+| `web/public/admin.html` | Admin dashboard (plain HTML, served at `/admin.html`) |
 
 ## How the key rules are enforced
 - **No paid exposure / owner accounts:** there is simply no such feature or role. Discover sections (`/api/discover`) are Near You, Recently Discovered, Community Favorites, Budget Finds, You Might Have Missed — no single "best" ranking; "missed" intentionally surfaces low-engagement spots.
