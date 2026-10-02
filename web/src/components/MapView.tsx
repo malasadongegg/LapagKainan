@@ -1,60 +1,70 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet'
+import { photoUrl } from '../lib/api'
+import { PRICE_SHORT } from '../lib/format'
 import { DEFAULT_CENTER, DEFAULT_ZOOM, TILE_ATTRIBUTION, TILE_URL } from '../lib/mapTiles'
 import type { LatLng } from '../lib/geo'
 import type { Spot } from '../lib/types'
-import { emojiFor } from '../lib/food'
 
 export type MapTarget = { kind: 'point'; lat: number; lng: number; zoom?: number; n: number } | { kind: 'bounds'; bounds: [[number, number], [number, number]]; n: number }
 export type BoundsStr = string // "south,west,north,east"
+/** Pixels reserved by UI covering the map: a bottom sheet on phones, a side panel on desktop. */
+export interface Inset { top: number; left: number; bottom: number }
 
-const pin = (emoji: string, cls: string) => L.divIcon({ className: '', html: `<div class="pin ${cls}"><span>${emoji}</span></div>`, iconSize: [40, 48], iconAnchor: [20, 46] })
-const iconCache = new Map<string, L.DivIcon>()
-const iconFor = (s: Spot, selected: boolean) => {
-  const cls = selected ? 'sel' : s.status === 'active' ? '' : 'off', e = emojiFor(s.tags), k = e + cls
-  if (!iconCache.has(k)) iconCache.set(k, pin(e, cls))
-  return iconCache.get(k)!
-}
-const meIcon = L.divIcon({ className: '', html: '<div class="mePin"></div>', iconSize: [18, 18], iconAnchor: [9, 9] })
+const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
+const PHOTO_ZOOM = 14 // below this, spots are quiet dots; at street level they become small photo prints
 
-function Controller({ target, onBounds, bottomPad }: { target: MapTarget | null; onBounds: (b: BoundsStr) => void; bottomPad: number }) {
-  const map = useMap()
-  useMapEvents({
-    moveend: () => { const b = map.getBounds(); onBounds([b.getSouth(), b.getWest(), b.getNorth(), b.getEast()].join(',')) },
+function iconFor(s: Spot, sel: boolean, photoMode: boolean) {
+  const off = s.status !== 'active' ? ' off' : ''
+  if (!photoMode && !sel) return L.divIcon({ className: '', html: `<div class="dotmk${off}"></div>`, iconSize: [14, 14], iconAnchor: [7, 7] })
+  const img = s.coverPhoto ? `style="background-image:url(${photoUrl(s.coverPhoto)})"` : ''
+  const label = sel ? `<div class="mklbl">${esc(s.name)}<small>${esc(PRICE_SHORT[s.priceBand])}${s.ratings.overall ? ' · ' + s.ratings.overall.toFixed(1) : ''}</small></div>` : ''
+  return L.divIcon({
+    className: '', iconSize: [46, 46], iconAnchor: [23, 51],
+    html: `<div class="mk${sel ? ' sel' : ''}${off}${s.coverPhoto ? '' : ' noimg'}"><div class="ph" ${img}>${s.coverPhoto ? '' : esc(s.name[0]?.toUpperCase() ?? '')}</div>${label}</div>`,
   })
-  useEffect(() => { const b = map.getBounds(); onBounds([b.getSouth(), b.getWest(), b.getNorth(), b.getEast()].join(',')) }, [map, onBounds])
+}
+const youIcon = L.divIcon({ className: '', html: '<div class="youmk"></div>', iconSize: [18, 18], iconAnchor: [9, 9] })
+
+function Controller({ target, inset, onBounds, onZoom }: { target: MapTarget | null; inset: Inset; onBounds: (b: BoundsStr) => void; onZoom: (z: number) => void }) {
+  const map = useMap()
+  const report = () => { const b = map.getBounds(); onBounds([b.getSouth(), b.getWest(), b.getNorth(), b.getEast()].join(',')); onZoom(map.getZoom()) }
+  useMapEvents({ moveend: report, zoomend: report })
+  useEffect(report, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!target) return
     if (target.kind === 'point') {
       const z = target.zoom ?? Math.max(map.getZoom(), 16)
-      // On phones the bottom sheet covers the lower half, so aim the pin at the visible middle.
-      const c = bottomPad ? map.unproject(map.project([target.lat, target.lng], z).add([0, bottomPad / 2]), z) : L.latLng(target.lat, target.lng)
+      // Aim the pin at the middle of the part of the map that is actually visible.
+      const dx = -inset.left / 2, dy = inset.bottom / 2 - inset.top / 2
+      const c = map.unproject(map.project([target.lat, target.lng], z).add([dx, dy]), z)
       map.flyTo(c, z, { duration: 0.6 })
-    }
-    else map.flyToBounds(target.bounds, { padding: [40, 40], maxZoom: 16, duration: 0.6, paddingBottomRight: [40, bottomPad] })
+    } else map.flyToBounds(target.bounds, { paddingTopLeft: [inset.left + 40, inset.top + 30], paddingBottomRight: [40, inset.bottom + 30], maxZoom: 16, duration: 0.6 })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target?.n])
   useEffect(() => { const t = setTimeout(() => map.invalidateSize(), 250); return () => clearTimeout(t) })
   return null
 }
 
-export default function MapView({ spots, selectedId, onSelect, me, target, onBounds, bottomPad }: {
-  spots: Spot[]; selectedId: number | null; onSelect: (id: number) => void; me: LatLng | null
-  target: MapTarget | null; onBounds: (b: BoundsStr) => void; bottomPad: number
+export default function MapView({ spots, highlightId, onSelect, me, target, onBounds, inset }: {
+  spots: Spot[]; highlightId: number | null; onSelect: (s: Spot) => void; me: LatLng | null
+  target: MapTarget | null; onBounds: (b: BoundsStr) => void; inset: Inset
 }) {
+  const [zoom, setZoom] = useState(DEFAULT_ZOOM)
+  const photoMode = zoom >= PHOTO_ZOOM
   const markers = useMemo(() => spots.map((s) => (
-    <Marker key={s.id} position={[s.lat, s.lng]} icon={iconFor(s, s.id === selectedId)}
-      zIndexOffset={s.id === selectedId ? 1000 : 0} eventHandlers={{ click: () => onSelect(s.id) }} />
-  )), [spots, selectedId, onSelect])
+    <Marker key={`${s.id}-${s.id === highlightId}-${photoMode}`} position={[s.lat, s.lng]} icon={iconFor(s, s.id === highlightId, photoMode)}
+      zIndexOffset={s.id === highlightId ? 1000 : 0} eventHandlers={{ click: () => onSelect(s) }} />
+  )), [spots, highlightId, photoMode, onSelect])
 
   return (
-    <MapContainer center={DEFAULT_CENTER} zoom={DEFAULT_ZOOM} zoomControl={false} attributionControl={true} style={{ position: 'absolute', inset: 0 }}>
+    <MapContainer center={DEFAULT_CENTER} zoom={DEFAULT_ZOOM} zoomControl={false} style={{ position: 'absolute', inset: 0 }}>
       <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} maxZoom={19} />
       {markers}
-      {me && <Marker position={[me.lat, me.lng]} icon={meIcon} interactive={false} />}
-      <Controller target={target} onBounds={onBounds} bottomPad={bottomPad} />
+      {me && <Marker position={[me.lat, me.lng]} icon={youIcon} interactive={false} />}
+      <Controller target={target} inset={inset} onBounds={onBounds} onZoom={setZoom} />
     </MapContainer>
   )
 }

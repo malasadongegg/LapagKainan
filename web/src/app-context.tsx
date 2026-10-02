@@ -5,10 +5,11 @@ export interface AppCtx {
   user: User | null
   setUser: (u: User | null) => void
   toast: (msg: string) => void
-  /** Resolves true when logged in; otherwise opens the sign-in dialog and resolves false. */
+  /** Returns true when logged in; otherwise opens the sign-in dialog and returns false. */
   requireLogin: () => boolean
   openAuth: () => void
-  openSpot: (id: number) => void
+  /** Opens a spot on the map; `here` starts the "Nandito ako" verification straight away. */
+  openSpot: (id: number, opts?: { here?: boolean }) => void
   openLapag: () => void
   /** Bumped whenever community data changes so lists can refetch. */
   version: number

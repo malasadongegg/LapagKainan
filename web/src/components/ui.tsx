@@ -1,44 +1,35 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { photoUrl } from '../lib/api'
-import { area, distance } from '../lib/format'
-import { BANDS, TIER, type Spot } from '../lib/types'
-import { Close, Star } from './icons'
-import { emojiFor } from '../lib/food'
 
-export function Rating({ value }: { value: number | null }) {
-  return value ? <span className="rate"><Star />{value.toFixed(1)}</span> : <span className="pill new">✦ New find</span>
-}
-
-export function SpotBadges({ s }: { s: Spot }) {
-  return <>
-    {s.status === 'inactive' && <span className="pill red">Inactive</span>}
-    {s.verifiedVisits > 0 && <span className="pill green">✔ {s.verifiedVisits} verified</span>}
-  </>
-}
-
-export function SpotRow({ s, onClick }: { s: Spot; onClick: () => void }) {
+/** A user-generated photo. While loading (or when a spot has none) it shows an intentional placeholder, never a spinner. */
+export function Photo({ id, name, className = '', style, onClick }: { id?: number | null; name?: string; className?: string; style?: React.CSSProperties; onClick?: () => void }) {
+  const [ok, setOk] = useState(false)
   return (
-    <div className="spotRow" onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onClick()}>
-      <div className="polaroid sm"><div className="ph" style={s.coverPhoto ? { backgroundImage: `url(${photoUrl(s.coverPhoto)})` } : undefined}>{!s.coverPhoto && <span>{emojiFor(s.tags)}</span>}</div></div>
-      <div className="grow">
-        <h4>{s.name}</h4>
-        <div className="meta"><Rating value={s.ratings.overall} />{s.reviewCount > 0 && <span> ({s.reviewCount})</span>}<span className="dot">·</span><b className="peso">{TIER[s.priceBand]}</b> {BANDS[s.priceBand]}</div>
-        <div className="meta">{area(s)}{s.distanceM != null && <><span className="dot">·</span>{distance(s.distanceM)}</>}</div>
-        <div className="tags"><SpotBadges s={s} />{s.tags.slice(0, 2).map((t) => <span className="pill" key={t}>{t}</span>)}</div>
-      </div>
+    <div className={`photo ${id && !ok ? 'skel' : ''} ${className}`} style={style} onClick={onClick}>
+      {!id && <span className="ini">{(name ?? '·').trim()[0]?.toUpperCase()}</span>}
+      {id ? <img src={photoUrl(id)} alt="" loading="lazy" className={ok ? 'in' : ''} onLoad={() => setOk(true)} /> : null}
     </div>
   )
 }
 
-export function SpotCard({ s, onClick }: { s: Spot; onClick: () => void }) {
+export function Dots({ value }: { value: number | null }) {
+  const n = Math.round(value ?? 0)
+  return <span className="dots" aria-label={value ? `${value} out of 5` : 'no ratings yet'}>{[1, 2, 3, 4, 5].map((i) => <i key={i} className={i <= n ? 'f' : ''} />)}</span>
+}
+
+export function RateInput({ value, onChange }: { value: number; onChange: (n: number) => void }) {
   return (
-    <div className="card" onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onClick()}>
-      <div className="polaroid"><div className="ph" style={s.coverPhoto ? { backgroundImage: `url(${photoUrl(s.coverPhoto)})` } : undefined}>{!s.coverPhoto && <span>{emojiFor(s.tags)}</span>}</div><div className="cap">{s.name}</div></div>
-      <div className="meta" style={{ marginTop: 8 }}><Rating value={s.ratings.overall} /><span className="dot">·</span><b className="peso">{TIER[s.priceBand]}</b><span className="dot">·</span>{s.tags[0] ?? ''}</div>
-      <div className="meta">{area(s)}{s.distanceM != null && <><span className="dot">·</span>{distance(s.distanceM)}</>}</div>
+    <div className="rate5" role="radiogroup">
+      {[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" role="radio" aria-checked={n === value} className={n <= value ? 'on' : ''} onClick={() => onChange(n)}>{n}</button>)}
     </div>
   )
+}
+
+export function ListSkeleton() {
+  return <div className="pad" aria-busy="true">{[0, 1, 2].map((i) => (
+    <div className="line" key={i} style={{ cursor: 'default' }}><div className="photo skel" style={{ width: 84, height: 84, flex: 'none' }} /><div className="grow"><div className="skel" style={{ height: 14, width: '60%', marginBottom: 8 }} /><div className="skel" style={{ height: 12, width: '90%', marginBottom: 6 }} /><div className="skel" style={{ height: 12, width: '40%' }} /></div></div>
+  ))}</div>
 }
 
 export function Dialog({ onClose, children }: { onClose: () => void; children: ReactNode }) {
@@ -57,29 +48,17 @@ export function Dialog({ onClose, children }: { onClose: () => void; children: R
 export function FlowShell({ title, step, steps, onClose, footer, children }: { title: string; step?: number; steps?: number; onClose: () => void; footer?: ReactNode; children: ReactNode }) {
   return createPortal(
     <div className="overlay" role="dialog" aria-modal="true">
-      <div className="flowHead"><h2>{title}</h2><button className="x" onClick={onClose} aria-label="Close"><Close width={16} height={16} /></button></div>
-      {steps ? <div className="progress">{Array.from({ length: steps }, (_, i) => <i key={i} className={i <= (step ?? 0) ? 'on' : ''} />)}</div> : null}
-      <div className="flowBody">{children}</div>
-      {footer && <div className="flowFoot">{footer}</div>}
+      <div className="fhead"><h2 className="h-md">{title}</h2>{steps ? <span className="step">{Math.min((step ?? 0) + 1, steps)}/{steps}</span> : null}<button className="link" onClick={onClose}>Isara</button></div>
+      {steps ? <div className="bar"><i style={{ width: `${(((step ?? 0) + 1) / steps) * 100}%` }} /></div> : null}
+      <div className="fbody">{children}</div>
+      {footer && <div className="ffoot">{footer}</div>}
     </div>, document.body)
 }
 
-export function StarsInput({ value, onChange }: { value: number; onChange: (n: number) => void }) {
-  return (
-    <div className="starsInput">
-      {[1, 2, 3, 4, 5].map((n) => (
-        <button key={n} type="button" className={n <= value ? 'on' : ''} onClick={() => onChange(n)} aria-label={`${n} star${n > 1 ? 's' : ''}`}><Star /></button>
-      ))}
-    </div>
-  )
-}
-
-export function Spinner() { return <div className="spin" aria-label="Loading" /> }
-
 export type Snap = 'peek' | 'half' | 'full'
-const PEEK = 250
+export const PEEK = 236
 
-/** Mobile: draggable bottom sheet with three snap points. Desktop (CSS): fixed side panel. */
+/** Mobile: draggable bottom sheet with three snap points. Desktop (CSS): a contextual panel floating over the map. */
 export function BottomSheet({ snap, setSnap, header, children, onHeight }: {
   snap: Snap; setSnap: (s: Snap) => void; header: ReactNode; children: ReactNode; onHeight?: (h: number) => void
 }) {
@@ -94,14 +73,11 @@ export function BottomSheet({ snap, setSnap, header, children, onHeight }: {
     return () => window.removeEventListener('resize', measure)
   }, [])
 
-  const heights: Record<Snap, number> = { peek: PEEK, half: Math.round(H * 0.5), full: H - 4 }
+  const heights: Record<Snap, number> = { peek: PEEK, half: Math.round(H * 0.56), full: H - 64 }
   const h = drag ?? heights[snap]
   useEffect(() => { onHeight?.(h) }, [h, onHeight])
 
-  const down = (e: React.PointerEvent) => {
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-    start.current = { y: e.clientY, h, moved: false }
-  }
+  const down = (e: React.PointerEvent) => { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); start.current = { y: e.clientY, h, moved: false } }
   const move = (e: React.PointerEvent) => {
     if (!(e.currentTarget as HTMLElement).hasPointerCapture(e.pointerId)) return
     const dy = start.current.y - e.clientY
@@ -118,10 +94,10 @@ export function BottomSheet({ snap, setSnap, header, children, onHeight }: {
   return (
     <div ref={ref} className={`sheet ${drag == null ? 'animate' : ''}`} style={{ height: h }}>
       <div onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
-        <div className="sheetHandle"><i /></div>
-        <div className="sheetHead">{header}</div>
+        <div className="grip"><i /></div>
+        <div className="shead">{header}</div>
       </div>
-      <div className={`sheetBody ${snap === 'peek' ? 'lock' : ''}`}>{children}</div>
+      <div className={`sbody ${snap === 'peek' ? 'lock' : ''}`}>{children}</div>
     </div>
   )
 }
