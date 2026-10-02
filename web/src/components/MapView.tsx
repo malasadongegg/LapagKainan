@@ -5,12 +5,18 @@ import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-lea
 import { DEFAULT_CENTER, DEFAULT_ZOOM, TILE_ATTRIBUTION, TILE_URL } from '../lib/mapTiles'
 import type { LatLng } from '../lib/geo'
 import type { Spot } from '../lib/types'
+import { emojiFor } from '../lib/food'
 
 export type MapTarget = { kind: 'point'; lat: number; lng: number; zoom?: number; n: number } | { kind: 'bounds'; bounds: [[number, number], [number, number]]; n: number }
 export type BoundsStr = string // "south,west,north,east"
 
-const pin = (cls: string) => L.divIcon({ className: '', html: `<div class="pin ${cls}"></div>`, iconSize: [30, 30], iconAnchor: [4, 30] })
-const ICONS = { on: pin(''), off: pin('off'), sel: pin('sel') }
+const pin = (emoji: string, cls: string) => L.divIcon({ className: '', html: `<div class="pin ${cls}"><span>${emoji}</span></div>`, iconSize: [40, 48], iconAnchor: [20, 46] })
+const iconCache = new Map<string, L.DivIcon>()
+const iconFor = (s: Spot, selected: boolean) => {
+  const cls = selected ? 'sel' : s.status === 'active' ? '' : 'off', e = emojiFor(s.tags), k = e + cls
+  if (!iconCache.has(k)) iconCache.set(k, pin(e, cls))
+  return iconCache.get(k)!
+}
 const meIcon = L.divIcon({ className: '', html: '<div class="mePin"></div>', iconSize: [18, 18], iconAnchor: [9, 9] })
 
 function Controller({ target, onBounds, bottomPad }: { target: MapTarget | null; onBounds: (b: BoundsStr) => void; bottomPad: number }) {
@@ -39,7 +45,7 @@ export default function MapView({ spots, selectedId, onSelect, me, target, onBou
   target: MapTarget | null; onBounds: (b: BoundsStr) => void; bottomPad: number
 }) {
   const markers = useMemo(() => spots.map((s) => (
-    <Marker key={s.id} position={[s.lat, s.lng]} icon={s.id === selectedId ? ICONS.sel : s.status === 'active' ? ICONS.on : ICONS.off}
+    <Marker key={s.id} position={[s.lat, s.lng]} icon={iconFor(s, s.id === selectedId)}
       zIndexOffset={s.id === selectedId ? 1000 : 0} eventHandlers={{ click: () => onSelect(s.id) }} />
   )), [spots, selectedId, onSelect])
 

@@ -3,7 +3,8 @@ import { api, photoUrl } from '../lib/api'
 import { useApp } from '../app-context'
 import { ago, area, readImage } from '../lib/format'
 import { BANDS, TIER, type SpotDetail as Detail } from '../lib/types'
-import { Bookmark, Camera, Chat, Check, Flag, Heart, Navigate, Share, Star, Utensils } from './icons'
+import { Bookmark, Camera, Chat, Check, Flag, Heart, Navigate, Share, Star } from './icons'
+import { emojiFor } from '../lib/food'
 import { Rating, Spinner, SpotBadges } from './ui'
 import { ImHereFlow, ReviewFlow } from './flows'
 import { ChoiceDialog, ReportDialog } from './dialogs'
@@ -39,14 +40,14 @@ export default function SpotDetail({ id }: { id: number }) {
   return (
     <div className="detail">
       <div className="gallery">
-        {d.photos.length ? d.photos.slice(0, 8).map((p) => <img key={p.id} src={photoUrl(p.id)} alt={`${p.kind} photo by ${p.username}`} loading="lazy" />)
-          : <div className="ph"><Utensils width={36} height={36} /></div>}
+        {d.photos.length ? d.photos.slice(0, 8).map((p) => <figure className="polaroid big" key={p.id}><img src={photoUrl(p.id)} alt={`${p.kind} photo by ${p.username}`} loading="lazy" /><figcaption>@{p.username}</figcaption></figure>)
+          : <div className="polaroid big"><div className="ph" style={{ height: 150 }}><span>{emojiFor(s.tags)}</span></div><div className="cap">Wala pang photo</div></div>}
       </div>
 
       <h2>{s.name}</h2>
       <div className="meta" style={{ marginTop: 4 }}>
         <Rating value={s.ratings.overall} />{s.reviewCount > 0 && <span> ({s.reviewCount})</span>}
-        <span className="dot">·</span>{TIER[s.priceBand]} {BANDS[s.priceBand]}<span className="dot">·</span>{area(s)}
+        <span className="dot">·</span><b className="peso">{TIER[s.priceBand]}</b> {BANDS[s.priceBand]}<span className="dot">·</span>{area(s)}
       </div>
       <div className="tags"><SpotBadges s={s} />{s.tags.map((t) => <span className="pill" key={t}>{t}</span>)}</div>
 
@@ -69,7 +70,7 @@ export default function SpotDetail({ id }: { id: number }) {
       <p className="meta">Discovered by <b>@{s.discoverer}</b> {ago(s.createdAt)}</p>
 
       <div className="section">
-        <h3>Ratings</h3>
+        <h3>Ano'ng sabi ng community</h3>
         <div className="ratingGrid">
           {([['food', 'Food'], ['value', 'Value'], ['service', 'Service'], ['cleanliness', 'Cleanliness']] as const).map(([k, l]) => (
             <div key={k}><b>{s.ratings[k] ?? '—'}</b><span>{l}</span></div>
@@ -79,7 +80,7 @@ export default function SpotDetail({ id }: { id: number }) {
       </div>
 
       <div className="section">
-        <h3>Community photos</h3>
+        <h3>Community photos 📸</h3>
         {d.photos.length ? <div className="photoGrid">{d.photos.map((p) => <img key={p.id} src={photoUrl(p.id)} alt={p.kind} loading="lazy" title={`${p.kind} · @${p.username}`} />)}</div> : <p className="meta">Wala pang photos.</p>}
         <label className="btn sm" style={{ marginTop: 10 }}>
           <Camera width={16} height={16} />Add photo
@@ -98,7 +99,7 @@ export default function SpotDetail({ id }: { id: number }) {
         <h3>Reviews</h3>
         {d.reviews.length ? d.reviews.map((r) => (
           <div className="item" key={r.id}>
-            <div className="row wrap"><b>@{r.username}</b>{r.verified && <span className="pill green"><Check width={12} height={12} />Verified Visit</span>}<span className="meta">{ago(r.created_at)}</span></div>
+            <div className="row wrap"><b>@{r.username}</b>{r.verified && <span className="stamp"><Check width={12} height={12} />Verified Visit</span>}<span className="meta">{ago(r.created_at)}</span></div>
             <div className="meta"><span className="rate"><Star />{r.overall}</span> · Food {r.food} · Value {r.value} · Service {r.service} · Clean {r.cleanliness}</div>
             {r.body && <p style={{ margin: '4px 0' }}>{r.body}</p>}
             <button className="btn ghost sm" onClick={guard(() => setReport({ type: 'review', id: r.id }))}>Report</button>

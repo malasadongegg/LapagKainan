@@ -79,7 +79,7 @@ export function ImHereFlow({ spot, onClose, onDone }: { spot: Spot; onClose: () 
   )
 }
 
-const dot = L.divIcon({ className: '', html: '<div class="pin sel"></div>', iconSize: [30, 30], iconAnchor: [4, 30] })
+const dot = L.divIcon({ className: '', html: '<div class="pin sel"><span>📍</span></div>', iconSize: [40, 48], iconAnchor: [20, 46] })
 
 function PickPoint({ onPick }: { onPick: (p: LatLng) => void }) {
   useMapEvents({ click: (e) => onPick({ lat: e.latlng.lat, lng: e.latlng.lng }) })

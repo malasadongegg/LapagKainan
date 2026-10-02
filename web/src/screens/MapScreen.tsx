@@ -20,7 +20,7 @@ export default function MapScreen({ initialSpot }: { initialSpot: number | null 
   const [bounds, setBounds] = useState<BoundsStr>('')
   const [spots, setSpots] = useState<Spot[]>([]), [loading, setLoading] = useState(true)
   const [selectedId, setSelectedId] = useState<number | null>(initialSpot)
-  const [snap, setSnap] = useState<Snap>('peek'), [sheetH, setSheetH] = useState(152)
+  const [snap, setSnap] = useState<Snap>('peek'), [sheetH, setSheetH] = useState(250)
   const [target, setTarget] = useState<MapTarget | null>(null)
   const [me, setMe] = useState<LatLng | null>(lastKnownLocation())
   const nTarget = useRef(0), seq = useRef(0)
@@ -83,7 +83,7 @@ export default function MapScreen({ initialSpot }: { initialSpot: number | null 
   const bottomPad = snap === 'peek' ? 160 : Math.round(sheetH)
   const desktop = typeof window !== 'undefined' && window.matchMedia('(min-width: 900px)').matches
   const header = useMemo(() => selectedId == null
-    ? <div className="sheetTitle"><span>{loading ? 'Searching…' : `${spots.length} food spot${spots.length === 1 ? '' : 's'} ${query ? `for “${query}”` : 'in this area'}`}</span></div>
+    ? <div><div className="kicker">{loading ? 'Hinahanap…' : `${spots.length} hidden bite${spots.length === 1 ? '' : 's'}${query ? ` for “${query}”` : ' nearby'}`}</div><div className="headline">Saan tayo <em>kakain</em>?</div></div>
     : <button className="btn ghost sm" style={{ paddingLeft: 0 }} onClick={() => select(null)}><Back width={18} height={18} />Back to results</button>,
     [selectedId, loading, spots.length, query, select])
 

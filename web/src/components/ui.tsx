@@ -3,26 +3,27 @@ import { createPortal } from 'react-dom'
 import { photoUrl } from '../lib/api'
 import { area, distance } from '../lib/format'
 import { BANDS, TIER, type Spot } from '../lib/types'
-import { Close, Star, Utensils } from './icons'
+import { Close, Star } from './icons'
+import { emojiFor } from '../lib/food'
 
 export function Rating({ value }: { value: number | null }) {
-  return value ? <span className="rate"><Star />{value.toFixed(1)}</span> : <span className="meta">New</span>
+  return value ? <span className="rate"><Star />{value.toFixed(1)}</span> : <span className="pill new">✦ New find</span>
 }
 
 export function SpotBadges({ s }: { s: Spot }) {
   return <>
     {s.status === 'inactive' && <span className="pill red">Inactive</span>}
-    {s.verifiedVisits > 0 && <span className="pill green">● {s.verifiedVisits} verified</span>}
+    {s.verifiedVisits > 0 && <span className="pill green">✔ {s.verifiedVisits} verified</span>}
   </>
 }
 
 export function SpotRow({ s, onClick }: { s: Spot; onClick: () => void }) {
   return (
     <div className="spotRow" onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onClick()}>
-      <div className="thumb" style={s.coverPhoto ? { backgroundImage: `url(${photoUrl(s.coverPhoto)})` } : undefined}>{!s.coverPhoto && <Utensils />}</div>
+      <div className="polaroid sm"><div className="ph" style={s.coverPhoto ? { backgroundImage: `url(${photoUrl(s.coverPhoto)})` } : undefined}>{!s.coverPhoto && <span>{emojiFor(s.tags)}</span>}</div></div>
       <div className="grow">
         <h4>{s.name}</h4>
-        <div className="meta"><Rating value={s.ratings.overall} />{s.reviewCount > 0 && <span> ({s.reviewCount})</span>}<span className="dot">·</span>{TIER[s.priceBand]}<span className="dot">·</span>{BANDS[s.priceBand]}</div>
+        <div className="meta"><Rating value={s.ratings.overall} />{s.reviewCount > 0 && <span> ({s.reviewCount})</span>}<span className="dot">·</span><b className="peso">{TIER[s.priceBand]}</b> {BANDS[s.priceBand]}</div>
         <div className="meta">{area(s)}{s.distanceM != null && <><span className="dot">·</span>{distance(s.distanceM)}</>}</div>
         <div className="tags"><SpotBadges s={s} />{s.tags.slice(0, 2).map((t) => <span className="pill" key={t}>{t}</span>)}</div>
       </div>
@@ -33,9 +34,8 @@ export function SpotRow({ s, onClick }: { s: Spot; onClick: () => void }) {
 export function SpotCard({ s, onClick }: { s: Spot; onClick: () => void }) {
   return (
     <div className="card" onClick={onClick} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onClick()}>
-      <div className="img" style={s.coverPhoto ? { backgroundImage: `url(${photoUrl(s.coverPhoto)})` } : undefined}>{!s.coverPhoto && <Utensils width={32} height={32} />}</div>
-      <h4>{s.name}</h4>
-      <div className="meta"><Rating value={s.ratings.overall} /><span className="dot">·</span>{TIER[s.priceBand]}<span className="dot">·</span>{s.tags[0] ?? ''}</div>
+      <div className="polaroid"><div className="ph" style={s.coverPhoto ? { backgroundImage: `url(${photoUrl(s.coverPhoto)})` } : undefined}>{!s.coverPhoto && <span>{emojiFor(s.tags)}</span>}</div><div className="cap">{s.name}</div></div>
+      <div className="meta" style={{ marginTop: 8 }}><Rating value={s.ratings.overall} /><span className="dot">·</span><b className="peso">{TIER[s.priceBand]}</b><span className="dot">·</span>{s.tags[0] ?? ''}</div>
       <div className="meta">{area(s)}{s.distanceM != null && <><span className="dot">·</span>{distance(s.distanceM)}</>}</div>
     </div>
   )
@@ -77,7 +77,7 @@ export function StarsInput({ value, onChange }: { value: number; onChange: (n: n
 export function Spinner() { return <div className="spin" aria-label="Loading" /> }
 
 export type Snap = 'peek' | 'half' | 'full'
-const PEEK = 152
+const PEEK = 250
 
 /** Mobile: draggable bottom sheet with three snap points. Desktop (CSS): fixed side panel. */
 export function BottomSheet({ snap, setSnap, header, children, onHeight }: {
