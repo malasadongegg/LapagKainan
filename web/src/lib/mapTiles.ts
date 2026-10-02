@@ -1,8 +1,8 @@
-// CARTO dark basemap, warmed toward charcoal-brown in CSS (.leaflet-tile-pane) so discoveries read as lights.
+// CARTO Voyager basemap, graded warmer and richer in CSS (--tile-filter) so it feels appetizing, not clinical.
 // The anonymous `{s}.basemaps.cartocdn.com` endpoint now serves a watermark, so we use the keyed
 // `rastertiles` endpoint (same approach as the ISMSI project).
 const KEY = import.meta.env.VITE_CARTO_API_KEY as string | undefined
-const STYLE = 'dark_all'
+const STYLE = 'voyager'
 
 export const TILE_URL = KEY
   ? `https://basemaps.cartocdn.com/rastertiles/${STYLE}/{z}/{x}/{y}.png?key=${KEY}`

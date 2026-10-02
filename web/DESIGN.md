@@ -1,4 +1,6 @@
-# LapagKainan — "Ilaw" design system
+# LapagKainan — "Ilaw" design system (daylight edition)
+
+> v2: the night map read like a dispatch dashboard, so the palette moved to warm daylight (toasted-rice paper, a warmer and richer CARTO Voyager map). The light language below still holds, expressed with rings and pulses instead of glow.
 
 **Idea.** At night, from above, you can tell where people eat by where the lights are on.
 Every discovery is a light on a warm charcoal map. Community activity is what makes a place glow.

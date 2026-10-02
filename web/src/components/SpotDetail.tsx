@@ -77,8 +77,17 @@ export default function SpotDetail({ id, autoHere, onClose }: { id: number; auto
 
         <section className="blk">
           <span className="kick">Worth it ba? · {s.reviewCount} review{s.reviewCount === 1 ? '' : 's'}</span>
-          <Bars rows={[['Food', s.ratings.food], ['Value', s.ratings.value], ['Service', s.ratings.service], ['Cleanliness', s.ratings.cleanliness]]} />
-          <div style={{ marginTop: 14 }}><button className="link" onClick={guard(() => setFlow('review'))}>{me.reviewed ? 'Baguhin ang review ko' : 'Mag-review'}</button></div>
+          {s.reviewCount > 0 ? <>
+            {s.ratings.overall != null && <p className="say" style={{ fontSize: 56, lineHeight: 1 }}>{s.ratings.overall.toFixed(1)}<span className="meta" style={{ marginLeft: 8 }}>/ 5 overall</span></p>}
+            <Bars rows={[['Food', s.ratings.food], ['Value', s.ratings.value], ['Service', s.ratings.service], ['Cleanliness', s.ratings.cleanliness]]} />
+            <div style={{ marginTop: 14 }}><button className="link" onClick={guard(() => setFlow('review'))}>{me.reviewed ? 'Baguhin ang review ko' : 'Mag-rate at mag-review'}</button></div>
+          </> : (
+            <div className="firstRate">
+              <p className="say" style={{ fontSize: 28 }}>Wala pang nag-rate.</p>
+              <p className="meta" style={{ margin: '6px 0 14px' }}>Kumain ka na dito? Ikaw ang unang magsasabi kung worth it.</p>
+              <button className="btn solid" onClick={guard(() => setFlow('review'))}>I-rate ito</button>
+            </div>
+          )}
           {d.reviews.map((r) => {
             const shots = d.photos.filter((p) => p.username === r.username && p.kind === 'meal').slice(0, 3)
             return (

@@ -112,10 +112,20 @@ export function LapagFlow({ onClose, onCreated }: { onClose: () => void; onCreat
   const useGps = () => { setGpsMsg('Hinahanap ka…'); getLocation().then((p) => { setGpsMsg(''); place(p) }).catch((e) => setGpsMsg(e.message)) }
   useEffect(() => { if (step === 1 && !loc) useGps(); else if (step === 1 && loc && !dupes.length) place(loc) }, [step]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Step 4: the discoverer usually just ate there, so let them rate it right away.
+  const [vals, setVals] = useState<Vals>({}), [verdict, setVerdict] = useState('')
+  const rated = Object.keys(vals).length
+
   const submit = async (force: boolean) => {
+    if (rated > 0 && rated < DIMS.length) { setErr('Kumpletuhin ang lima, o i-skip ang rating.'); return }
     setBusy(true); setErr('')
     try {
       const { spot } = await api<{ spot: Spot }>('POST', '/spots', { name, lat: loc!.lat, lng: loc!.lng, municipality: muni, province: prov, description: desc, hours, priceBand: band, tags, photo, confirmNew: force })
+      // If GPS says they're standing there, the discovery also counts as their verified visit.
+      let visitId: number | null = null
+      const here = lastKnownLocation()
+      if (here) visitId = await api<{ visitId: number }>('POST', `/spots/${spot.id}/visits`, { lat: here.lat, lng: here.lng, photo }).then((r) => r.visitId).catch(() => null)
+      if (rated === DIMS.length) await api('POST', `/spots/${spot.id}/reviews`, { ...vals, body: verdict, visitId: visitId ?? undefined }).catch(() => app.toast('Na-lapag, pero hindi na-save ang rating. Subukan ulit sa page.'))
       app.toast('Na-lapag na! Salamat sa pagshare.'); app.bump(); onCreated(spot)
     } catch (e: any) {
       if (e instanceof ApiError && e.status === 409 && e.data.matches) { setDupes(e.data.matches); setStep(1); setConfirmNew(false) } else setErr(e.message)
@@ -124,14 +134,19 @@ export function LapagFlow({ onClose, onCreated }: { onClose: () => void; onCreat
 
   const toggle = (t: string) => setTags(tags.includes(t) ? tags.filter((x) => x !== t) : [...tags, t])
   const showDupes = dupes.length > 0 && !confirmNew
-  const canNext = step === 0 ? !!photo : step === 1 ? !!loc && !showDupes : name.trim().length >= 2 && tags.length > 0
+  const canNext = step === 0 ? !!photo : step === 1 ? !!loc && !showDupes : step === 2 ? name.trim().length >= 2 && tags.length > 0 : true
 
   return (
-    <FlowShell title="Lapag mo" step={step} steps={3} onClose={onClose} footer={<>
+    <FlowShell title="Lapag mo" step={step} steps={4} onClose={onClose} footer={<>
       {step > 0 && <button className="btn" onClick={() => setStep(step - 1)}>Balik</button>}
-      {step < 2 ? <button className="btn solid grow" disabled={!canNext} onClick={() => setStep(step + 1)}>Susunod</button>
-        : <button className="btn solid grow" disabled={!canNext || busy} onClick={() => submit(confirmNew)}>{busy ? 'Nilalapag…' : 'Lapag!'}</button>}
+      {step < 3 ? <button className="btn solid grow" disabled={!canNext} onClick={() => setStep(step + 1)}>Susunod</button>
+        : <button className="btn solid grow" disabled={busy} onClick={() => submit(confirmNew)}>{busy ? 'Nilalapag…' : rated ? 'Lapag!' : 'Lapag nang walang rating'}</button>}
     </>}>
+      {step === 3 && <>
+        <h2 className="h-xl">Kumain ka na dito?</h2>
+        <p className="meta" style={{ margin: '8px 0 14px' }}>I-rate mo na habang sariwa pa. Optional, pero ito ang unang makikita ng iba.</p>
+        <RatingsStep vals={vals} setVals={setVals} body={verdict} setBody={setVerdict} err={err} />
+      </>}
       {step === 0 && <>
         <h2 className="h-xl">May nakita ka bang solid?</h2>
         <p className="meta" style={{ margin: '8px 0 18px' }}>Simulan sa photo. Kahit crooked, kahit ₱70 na silog lang. Mas totoo, mas maganda.</p>
