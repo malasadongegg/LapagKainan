@@ -46,6 +46,27 @@ Everything runtime lives in `data/` (gitignored). Back that folder up and you've
 | `scripts/make-admin.js` | Promote an existing user to admin |
 | `scripts/e2e.js` | End-to-end test against a throwaway DB |
 
+## API at a glance
+All routes are under `/api`. Auth is `Authorization: Bearer <token>` from register/login.
+
+| Method | Route | What |
+|---|---|---|
+| POST | `/auth/register`, `/auth/login` | Get a token |
+| GET | `/me`, `/me/saves` | Current user, saved spots |
+| GET | `/spots` | Search/filter spots (bounding box + text + filters) |
+| GET | `/spots/check?lat=&lng=` | Duplicate check within 100 m |
+| POST | `/spots` | Add a spot (409 on likely duplicate unless `confirmNew`) |
+| GET | `/spots/:id` | Spot + reviews, comments, photos, prices |
+| POST | `/spots/:id/photos` · `/visits` · `/reviews` · `/comments` · `/prices` | Contribute |
+| POST/DELETE | `/spots/:id/like` | Like / unlike |
+| PUT/DELETE | `/spots/:id/save` | Save / unsave |
+| POST | `/spots/:id/signal` | "Closed" / "still open" signal |
+| GET | `/photos/:id` | Photo bytes |
+| POST | `/reports` | Report content |
+| GET | `/discover` | Discovery sections |
+| GET | `/users/:username` | Public profile + badges |
+| * | `/admin/...` | overview, reports (+ resolve), spots (edit/archive/restore/merge), users (+ status), audit. Admin only |
+
 ## How the key rules are enforced
 - **No paid exposure / owner accounts:** there is simply no such feature or role. Discover sections (`/api/discover`) are Near You, Recently Discovered, Community Favorites, Budget Finds, You Might Have Missed — no single "best" ranking; "missed" intentionally surfaces low-engagement spots.
 - **Duplicates:** `POST /api/spots` checks 100 m around the pin (archived spots included) and returns `409` + matches unless the client confirms `confirmNew`.
