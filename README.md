@@ -19,6 +19,11 @@ Requires Node ≥ 22.13 (uses built-in `node:sqlite`, so no native build step).
 The CARTO key is optional: without it the app falls back to the anonymous `{s}.basemaps.cartocdn.com` endpoint, which now stamps a watermark on tiles. Fine for local hacking, not for anything public.
 The map opens on the launch area, Bulacan (Bocaue / Malolos); change `DEFAULT_CENTER` in `web/src/lib/mapTiles.ts` to move it.
 
+## Dev workflow
+- `npm run dev` restarts the API on file changes (`node --watch`); pair it with `npm run dev:web` for hot-reloading UI.
+- `npm test` boots the app against a throwaway SQLite file in your OS temp dir with a fixed secret, so it never touches `data/`.
+- `npm run build` type-checks (`tsc --noEmit`) before bundling, so a type error fails the build.
+
 ## Configuration
 | Variable | Default | What |
 |---|---|---|
