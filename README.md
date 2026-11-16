@@ -16,6 +16,24 @@ npm test             # end-to-end check of the spec's "final product test" (28 c
 ```
 Requires Node ≥ 22.13 (uses built-in `node:sqlite`, so no native build step).
 
+The CARTO key is optional: without it the app falls back to the anonymous `{s}.basemaps.cartocdn.com` endpoint, which now stamps a watermark on tiles. Fine for local hacking, not for anything public.
+The map opens on the launch area, Bulacan (Bocaue / Malolos); change `DEFAULT_CENTER` in `web/src/lib/mapTiles.ts` to move it.
+
+## Dev workflow
+- `npm run dev` restarts the API on file changes (`node --watch`); pair it with `npm run dev:web` for hot-reloading UI.
+- `npm test` boots the app against a throwaway SQLite file in your OS temp dir with a fixed secret, so it never touches `data/`.
+- `npm run build` type-checks (`tsc --noEmit`) before bundling, so a type error fails the build.
+
+## Configuration
+| Variable | Default | What |
+|---|---|---|
+| `PORT` | `3000` | HTTP port for the API + built web app |
+| `LK_DB` | `data/lapagkainan.db` | SQLite file path (WAL mode, so expect `-wal`/`-shm` siblings) |
+| `LK_SECRET` | auto-generated `data/secret.key` | HMAC secret for auth tokens. Set it explicitly in production, otherwise wiping `data/` logs everyone out |
+| `VITE_CARTO_API_KEY` | none | Build-time, in `web/.env`. CARTO raster tile key |
+
+Everything runtime lives in `data/` (gitignored). Back that folder up and you've backed up the whole app, photos included.
+
 ## Layout
 | Path | What |
 |---|---|
@@ -23,8 +41,36 @@ Requires Node ≥ 22.13 (uses built-in `node:sqlite`, so no native build step).
 | `server/spots.js` | Queries, search/filters, INACTIVE→ARCHIVED lifecycle, derived badges |
 | `server/admin.js` | Admin API: overview, moderation queue, spot edit/archive/restore/merge, users, audit log |
 | `server/db.js` | Schema (SQLite, FK + CHECK constraints + indexes) |
-| `web/` | React + Vite + TypeScript PWA (react-leaflet, CARTO dark basemap). Design system: `web/DESIGN.md` ("Ilaw") |
+| `server/util.js` | Password hashing, token signing, image magic-byte parsing, haversine, rate limiter |
+| `web/` | React + Vite + TypeScript PWA (react-leaflet, CARTO Voyager basemap warmed up via CSS). Design system: `web/DESIGN.md` ("Ilaw", daylight edition v4) |
+| `web/src/screens/` | Map screen plus the Kwento feed, Saved, Profile and search screens |
+| `web/src/components/` | Map view, spot detail page, add/rate flows, dialogs, story cards, shared UI |
+| `web/src/lib/` | API client, types, geo helpers (Nominatim geocoding), map tile config, formatting |
 | `web/public/admin.html` | Admin dashboard (plain HTML, served at `/admin.html`) |
+| `scripts/seed.js` | Demo spots + `demo` user |
+| `scripts/make-admin.js` | Promote an existing user to admin |
+| `scripts/e2e.js` | End-to-end test against a throwaway DB |
+
+## API at a glance
+All routes are under `/api`. Auth is `Authorization: Bearer <token>` from register/login.
+
+| Method | Route | What |
+|---|---|---|
+| POST | `/auth/register`, `/auth/login` | Get a token |
+| GET | `/me`, `/me/saves` | Current user, saved spots |
+| GET | `/spots` | Search/filter spots (bounding box + text + filters) |
+| GET | `/spots/check?lat=&lng=` | Duplicate check within 100 m |
+| POST | `/spots` | Add a spot (409 on likely duplicate unless `confirmNew`) |
+| GET | `/spots/:id` | Spot + reviews, comments, photos, prices |
+| POST | `/spots/:id/photos` · `/visits` · `/reviews` · `/comments` · `/prices` | Contribute |
+| POST/DELETE | `/spots/:id/like` | Like / unlike |
+| PUT/DELETE | `/spots/:id/save` | Save / unsave |
+| POST | `/spots/:id/signal` | "Closed" / "still open" signal |
+| GET | `/photos/:id` | Photo bytes |
+| POST | `/reports` | Report content |
+| GET | `/discover` | Discovery sections |
+| GET | `/users/:username` | Public profile + badges |
+| * | `/admin/...` | overview, reports (+ resolve), spots (edit/archive/restore/merge), users (+ status), audit. Admin only |
 
 ## How the key rules are enforced
 - **No paid exposure / owner accounts:** there is simply no such feature or role. Discover sections (`/api/discover`) are Near You, Recently Discovered, Community Favorites, Budget Finds, You Might Have Missed — no single "best" ranking; "missed" intentionally surfaces low-engagement spots.
@@ -39,4 +85,4 @@ Requires Node ≥ 22.13 (uses built-in `node:sqlite`, so no native build step).
 
 ## Not yet built (V2/V3 per spec) / known gaps
 Following + personalised feed, notifications, menu-item uploads & price history charts, business correction-request workflow, "open now" filter (hours are free text), Android wrapper (Capacitor/PWA), AI features.
-Deliberate MVP simplifications: SQLite instead of PostgreSQL/PostGIS (schema is portable; geo queries use a bounding box + haversine), photos stored in the DB (move to object storage at scale), in-memory rate limiter (use Redis when running multiple instances), OSM tiles + Nominatim (swap for a paid provider before heavy traffic).
+Deliberate MVP simplifications: SQLite instead of PostgreSQL/PostGIS (schema is portable; geo queries use a bounding box + haversine), photos stored in the DB (move to object storage at scale), in-memory rate limiter (use Redis when running multiple instances), CARTO Voyager tiles + public Nominatim geocoding called straight from the browser (Nominatim's usage policy caps you at ~1 req/s, so proxy/cache it or swap providers before real traffic).
