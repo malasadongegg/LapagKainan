@@ -19,6 +19,16 @@ Requires Node ≥ 22.13 (uses built-in `node:sqlite`, so no native build step).
 The CARTO key is optional: without it the app falls back to the anonymous `{s}.basemaps.cartocdn.com` endpoint, which now stamps a watermark on tiles. Fine for local hacking, not for anything public.
 The map opens on the launch area, Bulacan (Bocaue / Malolos); change `DEFAULT_CENTER` in `web/src/lib/mapTiles.ts` to move it.
 
+## Configuration
+| Variable | Default | What |
+|---|---|---|
+| `PORT` | `3000` | HTTP port for the API + built web app |
+| `LK_DB` | `data/lapagkainan.db` | SQLite file path (WAL mode, so expect `-wal`/`-shm` siblings) |
+| `LK_SECRET` | auto-generated `data/secret.key` | HMAC secret for auth tokens. Set it explicitly in production, otherwise wiping `data/` logs everyone out |
+| `VITE_CARTO_API_KEY` | none | Build-time, in `web/.env`. CARTO raster tile key |
+
+Everything runtime lives in `data/` (gitignored). Back that folder up and you've backed up the whole app, photos included.
+
 ## Layout
 | Path | What |
 |---|---|
