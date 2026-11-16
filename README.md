@@ -80,4 +80,4 @@ All routes are under `/api`. Auth is `Authorization: Bearer <token>` from regist
 
 ## Not yet built (V2/V3 per spec) / known gaps
 Following + personalised feed, notifications, menu-item uploads & price history charts, business correction-request workflow, "open now" filter (hours are free text), Android wrapper (Capacitor/PWA), AI features.
-Deliberate MVP simplifications: SQLite instead of PostgreSQL/PostGIS (schema is portable; geo queries use a bounding box + haversine), photos stored in the DB (move to object storage at scale), in-memory rate limiter (use Redis when running multiple instances), OSM tiles + Nominatim (swap for a paid provider before heavy traffic).
+Deliberate MVP simplifications: SQLite instead of PostgreSQL/PostGIS (schema is portable; geo queries use a bounding box + haversine), photos stored in the DB (move to object storage at scale), in-memory rate limiter (use Redis when running multiple instances), CARTO Voyager tiles + public Nominatim geocoding called straight from the browser (Nominatim's usage policy caps you at ~1 req/s, so proxy/cache it or swap providers before real traffic).
