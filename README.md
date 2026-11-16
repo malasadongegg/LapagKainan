@@ -23,7 +23,7 @@ Requires Node ≥ 22.13 (uses built-in `node:sqlite`, so no native build step).
 | `server/spots.js` | Queries, search/filters, INACTIVE→ARCHIVED lifecycle, derived badges |
 | `server/admin.js` | Admin API: overview, moderation queue, spot edit/archive/restore/merge, users, audit log |
 | `server/db.js` | Schema (SQLite, FK + CHECK constraints + indexes) |
-| `web/` | React + Vite + TypeScript PWA (react-leaflet, CARTO dark basemap). Design system: `web/DESIGN.md` ("Ilaw") |
+| `web/` | React + Vite + TypeScript PWA (react-leaflet, CARTO Voyager basemap warmed up via CSS). Design system: `web/DESIGN.md` ("Ilaw", daylight edition v4) |
 | `web/public/admin.html` | Admin dashboard (plain HTML, served at `/admin.html`) |
 
 ## How the key rules are enforced
