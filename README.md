@@ -36,8 +36,15 @@ Everything runtime lives in `data/` (gitignored). Back that folder up and you've
 | `server/spots.js` | Queries, search/filters, INACTIVE→ARCHIVED lifecycle, derived badges |
 | `server/admin.js` | Admin API: overview, moderation queue, spot edit/archive/restore/merge, users, audit log |
 | `server/db.js` | Schema (SQLite, FK + CHECK constraints + indexes) |
+| `server/util.js` | Password hashing, token signing, image magic-byte parsing, haversine, rate limiter |
 | `web/` | React + Vite + TypeScript PWA (react-leaflet, CARTO Voyager basemap warmed up via CSS). Design system: `web/DESIGN.md` ("Ilaw", daylight edition v4) |
+| `web/src/screens/` | Map screen plus the Kwento feed, Saved, Profile and search screens |
+| `web/src/components/` | Map view, spot detail page, add/rate flows, dialogs, story cards, shared UI |
+| `web/src/lib/` | API client, types, geo helpers (Nominatim geocoding), map tile config, formatting |
 | `web/public/admin.html` | Admin dashboard (plain HTML, served at `/admin.html`) |
+| `scripts/seed.js` | Demo spots + `demo` user |
+| `scripts/make-admin.js` | Promote an existing user to admin |
+| `scripts/e2e.js` | End-to-end test against a throwaway DB |
 
 ## How the key rules are enforced
 - **No paid exposure / owner accounts:** there is simply no such feature or role. Discover sections (`/api/discover`) are Near You, Recently Discovered, Community Favorites, Budget Finds, You Might Have Missed — no single "best" ranking; "missed" intentionally surfaces low-engagement spots.
