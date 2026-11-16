@@ -16,6 +16,9 @@ npm test             # end-to-end check of the spec's "final product test" (28 c
 ```
 Requires Node ≥ 22.13 (uses built-in `node:sqlite`, so no native build step).
 
+The CARTO key is optional: without it the app falls back to the anonymous `{s}.basemaps.cartocdn.com` endpoint, which now stamps a watermark on tiles. Fine for local hacking, not for anything public.
+The map opens on the launch area, Bulacan (Bocaue / Malolos); change `DEFAULT_CENTER` in `web/src/lib/mapTiles.ts` to move it.
+
 ## Layout
 | Path | What |
 |---|---|
